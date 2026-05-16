@@ -1,7 +1,7 @@
 const BASE_URL = "https://anderson-cv-api.onrender.com";
 
 // ========================================================
-// INICIALIZACIÓN DE FIREBASE (FRONTEND PUBLIC APP)
+// INICIALIZACIÓN DE FIREBASE (FRONTEND)
 // ========================================================
 const firebaseConfig = {
     apiKey: "AIzaSyBDlSwnQ9oG1qMb2JIP_YwyhLy-VytSZeE",
@@ -15,7 +15,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const dbFS = firebase.firestore();
 
-// Variables globales de entorno
+// ========================================================
+// VARIABLES Y EVENTOS
+// ========================================================
 let apiData = null;
 let isAuthorizing = false;
 let authProgress = 0;
@@ -32,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initHoldToUnlock();
     document.getElementById('downloadBtn').addEventListener('click', descargarCV);
     
+    // Enlace reactivo del motor de chat de IA
     const aiForm = document.getElementById('ai-chat-form');
     if (aiForm) {
         aiForm.addEventListener('submit', procesarPreguntaIA);
@@ -39,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ========================================================
-// MOTOR DEL LOGIN INTERACTIVO (HOLD TO AUTHORIZE)
+// MOTOR DEL TUTORIAL E INTERFAZ (HOLD TO AUTHORIZE)
 // ========================================================
 function initHoldToUnlock() {
     const btn = document.getElementById('auth-btn');
@@ -72,7 +75,7 @@ function initHoldToUnlock() {
         if (isProcessing) return;
         if (e.type === 'mousedown' && e.button !== 0) return;
         
-        // Solicitar pantalla completa en móviles tras interacción física
+        // ACTIVAR PANTALLA COMPLETA MÓVIL
         if (e.type === 'touchstart') {
             const docEl = document.documentElement;
             if (docEl.requestFullscreen) docEl.requestFullscreen().catch(()=>{});
@@ -128,7 +131,7 @@ function initHoldToUnlock() {
 }
 
 // ========================================================
-// SECUENCIA DE TRANSICIÓN Y CARGA DE DATOS
+// SECUENCIA DE UNLOCK Y FETCH
 // ========================================================
 async function executeAISequence() {
     isProcessing = true;
@@ -172,18 +175,21 @@ async function executeAISequence() {
                     bar.style.width = `${target}%`;
                 });
                 
-                iniciarTelemetria3D(); // Desparar el módulo de geolocalización
+                iniciarTelemetria3D();
             }, 800);
         }, 800);
 
     } catch (error) {
-        statusText.innerText = "Error de enlace. Despertando API... Reintentando...";
+        statusText.innerText = "Error (Cold Start). Render despertando. Reintentando... Reintentando...";
         statusText.style.color = "#ef4444";
         circle.style.stroke = "#ef4444";
         setTimeout(() => { window.location.reload(); }, 4000);
     }
 }
 
+// ========================================================
+// POBLAR DATOS DEL CV EN EL DOM
+// ========================================================
 function renderPortfolioData() {
     document.getElementById('web-nombre').innerText = apiData.info_personal.nombre;
     document.getElementById('web-titulo').innerText = apiData.info_personal.perfil_corto;
@@ -213,7 +219,7 @@ function renderPortfolioData() {
 }
 
 // ========================================================
-// TELEMETRÍA 3D VECTORIAL NATIVA (SOPORTE MULTI-USUARIO)
+// TELEMETRÍA 3D VECTORIAL CON MARCADOR PLANO (FIJO Y ESTABLE)
 // ========================================================
 async function iniciarTelemetria3D() {
     const telemetryContainer = document.getElementById('telemetry-data');
@@ -223,6 +229,7 @@ async function iniciarTelemetria3D() {
         const res = await fetch(`${BASE_URL}/api/telemetry`);
         const myData = await res.json();
 
+        // Actualizar datos de consola
         telemetryContainer.innerHTML = `
             <div style="color: #10b981; margin-bottom: 15px; font-weight: bold;">[ ENLACE ESTABLECIDO ]</div>
             <div><span style="color:#64748b">IP Client:</span> ${myData.ip_anonymized || myData.ip}</div>
@@ -232,22 +239,25 @@ async function iniciarTelemetria3D() {
             <div style="margin-top: 15px; color: #f59e0b; font-size: 0.85rem;" class="blink">>>> Monitoreo SOC Multi-usuario Activo</div>
         `;
 
+        // INSTANCIAR GLOBO PREMIUM CON MARCADORES WEBGL NATIVOS
         const world = Globe()(globeContainer)
             .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
             .backgroundColor('#0f172a')
-            .width(300).height(300)
+            .width(300)
+            .height(300)
             .showAtmosphere(true)
             .atmosphereColor('#0ea5e9')
+            
             .pointColor(d => d.isMe ? '#10b981' : '#38bdf8')
-            .pointAltitude(0) // Puntos planos sobre el relieve
-            .pointRadius(0.65)
+            .pointAltitude(0)       
+            .pointRadius(0.65)      
             .pointsMerge(true);
 
         world.controls().autoRotate = true;
         world.controls().autoRotateSpeed = 1.5;
         world.pointOfView({ altitude: 2.2 });
 
-        // Carga de Capa Política Vectorial Sutil
+        // CARGAR SILUETAS VECTORIALES DE LOS PAÍSES
         fetch('//unpkg.com/three-globe/example/data/ne_110m_admin_0_countries.geojson')
             .then(geojsonRes => geojsonRes.json())
             .then(countries => {
@@ -255,7 +265,8 @@ async function iniciarTelemetria3D() {
                     .polygonCapColor(() => 'rgba(15, 23, 42, 0.6)')
                     .polygonSideColor(() => 'rgba(56, 189, 248, 0.15)')
                     .polygonStrokeColor(() => 'rgba(56, 189, 248, 0.4)');
-            }).catch(err => console.log("Aviso: Mapeo de polígonos omitido", err));
+            })
+            .catch(err => console.log("Aviso: Error cargando fronteras vectoriales", err));
 
         function updateWebGlPoints(usersList) {
             const formattedPoints = usersList.map(user => ({
@@ -275,28 +286,34 @@ async function iniciarTelemetria3D() {
                         activeUsers.push(u);
                     }
                 });
+                
                 if (activeUsers.length === 0) activeUsers.push(myData);
                 updateWebGlPoints(activeUsers);
             }, error => {
+                console.warn("Firestore fallback activado:", error);
                 updateWebGlPoints([myData]);
             });
         } else {
             updateWebGlPoints([myData]);
         }
 
-        // Acercamiento controlado y fijación a Zipaquirá
         setTimeout(() => {
             world.controls().autoRotate = false;
-            world.pointOfView({ lat: myData.lat, lng: myData.lon, altitude: 1.0 }, 2500);
+            world.pointOfView({ 
+                lat: myData.lat, 
+                lng: myData.lon, 
+                altitude: 1.0 
+            }, 2500);
         }, 3500);
 
     } catch (error) {
-        telemetryContainer.innerHTML = `<span style="color: #ef4444;">[ ERROR ] Telemetría interrumpida.</span>`;
+        console.error("Error en módulo 3D:", error);
+        telemetryContainer.innerHTML = `<span style="color: #ef4444;">[ ERROR ]<br>Fallo en inicialización de entorno 3D.</span>`;
     }
 }
 
 // ========================================================
-// ASISTENTE DE INTELIGENCIA ARTIFICIAL (GEMINI CLIENT)
+// ASISTENTE DE INTELIGENCIA ARTIFICIAL (GEMINI ENGINE)
 // ========================================================
 async function procesarPreguntaIA(e) {
     e.preventDefault();
@@ -316,4 +333,57 @@ async function procesarPreguntaIA(e) {
     chatLogs.scrollTop = chatLogs.scrollHeight;
 
     const loadingId = "loading-" + Date.now();
-    chatLogs.innerHTML += `<div id="${loadingId}" style="color: #64748b; margin-top: 5px;" class="blink"><span style="color: #10b981;">
+    chatLogs.innerHTML += `<div id="${loadingId}" style="color: #64748b; margin-top: 5px;" class="blink"><span style="color: #10b981;">[ AI Agent ]:</span> Procesando vectores de experiencia...</div>`;
+    chatLogs.scrollTop = chatLogs.scrollHeight;
+
+    try {
+        const response = await fetch(`${BASE_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: userMessage })
+        });
+        
+        if (!response.ok) throw new Error();
+        const data = await response.json();
+
+        document.getElementById(loadingId).remove();
+        chatLogs.innerHTML += `<div style="color: #38bdf8; margin-top: 5px; text-align: justify;"><span style="color: #10b981;">[ AI Agent ]:</span> ${data.response}</div>`;
+
+    } catch (error) {
+        if(document.getElementById(loadingId)) document.getElementById(loadingId).remove();
+        chatLogs.innerHTML += `<div style="color: #ef4444; margin-top: 5px;">[ ERROR ] Fallo en el enlace cognitivo.</div>`;
+    }
+
+    inputField.disabled = false;
+    sendBtn.disabled = false;
+    inputField.focus();
+    chatLogs.scrollTop = chatLogs.scrollHeight;
+}
+
+// ========================================================
+// DESCARGA DE PDF
+// ========================================================
+async function descargarCV() {
+    const btn = document.getElementById('downloadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Procesando PDF en Python...';
+
+    try {
+        const response = await fetch(`${BASE_URL}/descargar-cv`);
+        if (!response.ok) throw new Error();
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'CV_Anderson_Moncada.pdf';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    } catch (error) {
+        alert("Error de comunicación con el motor generador de FPDF.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '📥 Generar y Descargar PDF Oficial';
+    }
+}
