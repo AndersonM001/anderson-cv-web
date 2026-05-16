@@ -213,7 +213,7 @@ function renderPortfolioData() {
 }
 
 // ========================================================
-// TELEMETRÍA 3D GLOBE.GL Y MULTI-USUARIO - CORREGIDO
+// TELEMETRÍA 3D GLOBE.GL CON FRONTERAS Y PUNTOS WEBGL NATIVOS
 // ========================================================
 async function iniciarTelemetria3D() {
     const telemetryContainer = document.getElementById('telemetry-data');
@@ -233,73 +233,73 @@ async function iniciarTelemetria3D() {
             <div style="margin-top: 15px; color: #f59e0b; font-size: 0.85rem;" class="blink">>>> Monitoreo SOC Multi-usuario Activo</div>
         `;
 
-        // INSTANCIAR EL GLOBO CON MÉTODOS ESTÁNDAR COMPATIBLES
+        // 1. Inicializar el Globo con estilo de red e infraestructura segura
         const world = Globe()(globeContainer)
             .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
             .backgroundColor('#0f172a')
             .width(300)
             .height(300)
             .showAtmosphere(true)
-            .atmosphereColor('#38bdf8'); // Eliminamos el método problemático alpha
+            .atmosphereColor('#1e1b4b') // Atmósfera tenue azul oscuro para no sobrecargar
+            
+            // CONFIGURACIÓN DE PUNTOS NATIVOS 3D (Blindaje contra desaparición de marcadores)
+            .pointColor(d => d.isMe ? '#10b981' : '#38bdf8')
+            .pointAltitude(0.07) // Eleva el punto flotando sutilmente sobre el mapa
+            .pointRadius(0.4)    // Grosor del punto
+            .pointsMerge(true);
 
         world.controls().autoRotate = true;
-        world.controls().autoRotateSpeed = 2.5;
+        world.controls().autoRotateSpeed = 2.0;
         world.pointOfView({ altitude: 2.3 });
 
-        // Función para renderizar los marcadores de forma segura en el DOM
-        function renderMarkers(usersList) {
-            world.htmlElementsData(usersList)
-                .htmlElement(d => {
-                    const el = document.createElement('div');
-                    const isMe = (d.ip_anonymized === myData.ip_anonymized);
-                    const color = isMe ? '#10b981' : '#38bdf8'; 
-                    
-                    el.style.position = 'absolute';
-                    el.style.transform = 'translate(-50%, -50%)';
-                    el.style.zIndex = '9999';
-                    el.style.pointerEvents = 'none';
+        // 2. DELIMITACIÓN DE PAÍSES (Efecto frontera de red traslúcida)
+        fetch('//unpkg.com/three-globe/example/data/ne_110m_admin_0_countries.geojson')
+            .then(res => res.json())
+            .then(countries => {
+                world.polygonsData(countries.features)
+                    .polygonCapMaterial(new THREE.MeshBasicMaterial({ color: '#0f172a', opacity: 0.1, transparent: true })) // Fondo del país casi invisible
+                    .polygonSideColor(() => 'rgba(56, 189, 248, 0.25)') // Línea de la frontera neón cian delgada
+                    .polygonStrokeColor(() => 'rgba(56, 189, 248, 0.4)');
+            }).catch(err => console.log("Aviso: No se pudieron mapear las fronteras vectoriales vectoriales", err));
 
-                    el.innerHTML = `
-                        <div style="width: ${isMe ? '24px' : '16px'}; height: ${isMe ? '24px' : '16px'}; background: radial-gradient(circle, ${color} 20%, transparent 70%); border-radius: 50%; animation: ringPulse 1.5s infinite ease-in-out;"></div>
-                        <div style="width: ${isMe ? '8px' : '6px'}; height: ${isMe ? '8px' : '6px'}; background: ${color}; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 8px ${color};"></div>
-                    `;
-                    return el;
-                });
+        // Función adaptadora para formatear la estructura que le gusta a WebGL
+        function updateWebGlPoints(usersList) {
+            const formattedPoints = usersList.map(user => ({
+                lat: parseFloat(user.lat),
+                lng: parseFloat(user.lon),
+                isMe: user.ip_anonymized === myData.ip_anonymized
+            }));
+            world.pointsData(formattedPoints);
         }
 
-        // ESCUCHA FIREBASE TIEMPO REAL MULTI-USUARIO
+        // 3. ESCUCHA ACTIVA DE FIREBASE FIRESTORE MULTI-USUARIO
         if (typeof firebase !== 'undefined' && dbFS) {
             dbFS.collection("active_users").onSnapshot((snapshot) => {
                 const activeUsers = [];
                 snapshot.forEach((doc) => {
                     const u = doc.data();
-                    // Validamos que tenga coordenadas y que esté activo (últimos 10 min)
                     if (u.lat && u.lon && ((Date.now() / 1000) - u.timestamp < 600)) {
                         activeUsers.push(u);
                     }
                 });
                 
-                // Si Firebase está vacío, nos aseguramos de pintar al menos tu nodo
-                if (activeUsers.length === 0) {
-                    activeUsers.push(myData);
-                }
-                
-                renderMarkers(activeUsers);
+                if (activeUsers.length === 0) activeUsers.push(myData);
+                updateWebGlPoints(activeUsers);
             }, error => {
-                console.warn("Error en snapshot de Firestore, usando modo local:", error);
-                renderMarkers([myData]);
+                console.warn("Firestore fallback activado:", error);
+                updateWebGlPoints([myData]);
             });
         } else {
-            renderMarkers([myData]);
+            updateWebGlPoints([myData]);
         }
 
-        // Zoom In dinámico al usuario principal
+        // 4. Enfoque dinámico y fijación de objetivo en Zipaquira
         setTimeout(() => {
             world.controls().autoRotate = false;
             world.pointOfView({ 
                 lat: myData.lat, 
                 lng: myData.lon, 
-                altitude: 0.45 
+                altitude: 0.5 
             }, 2500);
         }, 3500);
 
