@@ -296,13 +296,13 @@ async function iniciarTelemetria3D() {
             updateWebGlPoints([myData]);
         }
 
-        // Zoom In dinámico hacia Zipaquirá
+        // Zoom In dinámico
         setTimeout(() => {
             world.controls().autoRotate = false;
             world.pointOfView({ 
                 lat: myData.lat, 
                 lng: myData.lon, 
-                altitude: 0.52 
+                altitude: 1.0 
             }, 2500);
         }, 3500);
 
