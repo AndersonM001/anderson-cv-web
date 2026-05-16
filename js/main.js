@@ -213,7 +213,7 @@ function renderPortfolioData() {
 }
 
 // ========================================================
-// TELEMETRÍA 3D GLOBE.GL Y MULTI-USUARIO - VERSIÓN ULTRA PREMIUM
+// TELEMETRÍA 3D GLOBE.GL Y MULTI-USUARIO - CORREGIDO
 // ========================================================
 async function iniciarTelemetria3D() {
     const telemetryContainer = document.getElementById('telemetry-data');
@@ -233,23 +233,20 @@ async function iniciarTelemetria3D() {
             <div style="margin-top: 15px; color: #f59e0b; font-size: 0.85rem;" class="blink">>>> Monitoreo SOC Multi-usuario Activo</div>
         `;
 
-        // INSTANCIAR EL GLOBO CON CAPAS VISUALES MEJORADAS
+        // INSTANCIAR EL GLOBO CON MÉTODOS ESTÁNDAR COMPATIBLES
         const world = Globe()(globeContainer)
-            // Cambiamos a una textura nocturna con luces vectoriales de alta definición
             .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
             .backgroundColor('#0f172a')
             .width(300)
             .height(300)
-            // AGREGAMOS EFECTO DE ATMÓSFERA CIBERNÉTICA (Esto resalta el mapa)
             .showAtmosphere(true)
-            .atmosphereColor('#38bdf8')
-            .atmosphereDaylightAlpha(0.15);
+            .atmosphereColor('#38bdf8'); // Eliminamos el método problemático alpha
 
         world.controls().autoRotate = true;
         world.controls().autoRotateSpeed = 2.5;
         world.pointOfView({ altitude: 2.3 });
 
-        // Función para renderizar los marcadores de forma segura en el DOM del canvas
+        // Función para renderizar los marcadores de forma segura en el DOM
         function renderMarkers(usersList) {
             world.htmlElementsData(usersList)
                 .htmlElement(d => {
@@ -257,7 +254,6 @@ async function iniciarTelemetria3D() {
                     const isMe = (d.ip_anonymized === myData.ip_anonymized);
                     const color = isMe ? '#10b981' : '#38bdf8'; 
                     
-                    // Aseguramos tamaño, z-index alto y visibilidad absoluta para que no se escondan tras el relieve
                     el.style.position = 'absolute';
                     el.style.transform = 'translate(-50%, -50%)';
                     el.style.zIndex = '9999';
@@ -276,35 +272,34 @@ async function iniciarTelemetria3D() {
             dbFS.collection("active_users").onSnapshot((snapshot) => {
                 const activeUsers = [];
                 snapshot.forEach((doc) => {
-                    // Validamos que el registro tenga coordenadas válidas antes de inyectarlo
                     const u = doc.data();
+                    // Validamos que tenga coordenadas y que esté activo (últimos 10 min)
                     if (u.lat && u.lon && ((Date.now() / 1000) - u.timestamp < 600)) {
                         activeUsers.push(u);
                     }
                 });
                 
-                // Si por alguna razón Firebase devuelve vacío el snapshot inicial, forzamos tu posición
+                // Si Firebase está vacío, nos aseguramos de pintar al menos tu nodo
                 if (activeUsers.length === 0) {
                     activeUsers.push(myData);
                 }
                 
                 renderMarkers(activeUsers);
             }, error => {
-                console.warn("Firestore restricción de reglas, usando modo local:", error);
+                console.warn("Error en snapshot de Firestore, usando modo local:", error);
                 renderMarkers([myData]);
             });
         } else {
-            // Fallback inmediato si Firebase no está inicializado en frontend
             renderMarkers([myData]);
         }
 
-        // COREOGRAFÍA: Detener rotación y Zoom In al usuario principal
+        // Zoom In dinámico al usuario principal
         setTimeout(() => {
             world.controls().autoRotate = false;
             world.pointOfView({ 
                 lat: myData.lat, 
                 lng: myData.lon, 
-                altitude: 0.45 // Un zoom balanceado para apreciar el mapa de noche
+                altitude: 0.45 
             }, 2500);
         }, 3500);
 
