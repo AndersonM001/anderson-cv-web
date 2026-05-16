@@ -8,7 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
-    <link rel="stylesheet" href="css/style.css?v=7">
+    <link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
 
@@ -38,6 +38,7 @@
                     <div class="ai-orb"></div>
                 </button>
             </div>
+
             <div class="ai-status">
                 <p id="ai-status-text" class="typing-text">Sistema en espera.</p>
             </div>
@@ -71,6 +72,25 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="card" style="grid-column: 1 / -1;">
+                    <h3 class="card-title">🤖 Neural Query Engine — Consultas de Perfil via IA</h3>
+                    <div style="background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 20px;">
+                        <div id="chat-logs" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.9rem; margin-bottom: 15px; padding-right: 5px; line-height: 1.5;">
+                            <div style="color: #64748b;">[ SYSTEM ] Inicializando agente de reclutamiento automatizado...</div>
+                            <div style="color: #38bdf8; margin-top: 5px;"><span style="color: #10b981;">[ AI Agent ]:</span> Hola. Soy el motor cognitivo de Anderson. Puedes preguntarme sobre sus proyectos en Kotlin, su experiencia en el SOC del Banco de Occidente o sus certificaciones ISO. ¿En qué puedo ayudarte?</div>
+                        </div>
+                        <form id="ai-chat-form" style="display: flex; gap: 10px;">
+                            <input type="text" id="ai-user-input" placeholder="Ej: ¿Qué experiencia tiene en Docker o seguridad bancaria?..." required
+                                   style="flex: 1; background: #0b1329; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; color: #fff; font-family: monospace; outline: none; font-size: 0.9rem;">
+                            <button type="submit" id="ai-send-btn" 
+                                    style="background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 0 25px; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: monospace; transition: all 0.2s;">
+                                ENVIAR
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
             </div>
 
             <section>
@@ -86,6 +106,6 @@
         </div>
     </div>
 
-    <script src="js/main.js?v=7"></script>
+    <script src="js/main.js?v=8"></script>
 </body>
 </html>
