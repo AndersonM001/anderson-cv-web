@@ -6,7 +6,7 @@ let authProgress = 0;
 let authInterval;
 let isProcessing = false;
 
-// El stack de tecnologías que se mostrará rápidamente mientras mantiene pulsado (El Tutorial)
+// El stack del tutorial
 const techStack = [
     "Docker Engine", "Kotlin MVVM", "Python / FastAPI", 
     "GLPI & Vaultwarden", "ISO 27001 SOC", "GPO & AD", 
@@ -16,54 +16,56 @@ const techStack = [
 document.addEventListener('DOMContentLoaded', () => {
     initHoldToUnlock();
     document.getElementById('downloadBtn').addEventListener('click', descargarCV);
-    // Podrías inicializar Canvas particles aquí si eliges la Opción 1.
 });
 
 // ========================================================
-// MOTOR DEL TUTORIAL INTERACTIVO (HOLD TO AUTHORIZE)
+// MOTOR DEL TUTORIAL E INTERFAZ 3D (HOLD TO AUTHORIZE)
 // ========================================================
 function initHoldToUnlock() {
     const btn = document.getElementById('auth-btn');
     const circle = document.querySelector('.progress-ring__circle');
     const statusText = document.getElementById('ai-status-text');
+    const techMatrix = document.getElementById('tech-matrix');
     const authCard = document.getElementById('auth-card');
     
-    // Cálculo de la circunferencia (2 * PI * radio 84)
     const radius = circle.r.baseVal.value;
     const circumference = radius * 2 * Math.PI;
     circle.style.strokeDasharray = `${circumference} ${circumference}`;
     circle.style.strokeDashoffset = circumference;
 
-    // --- OPCIÓN 2: PARALLAX 3D DINÁMICO ---
+    // Parallax 3D Card Hover
     window.addEventListener('mousemove', (e) => {
         if (isProcessing) return;
-        const xAxis = (window.innerWidth / 2 - e.pageX) / 40; // Sensibilidad X
-        const yAxis = (window.innerHeight / 2 - e.pageY) / 40; // Sensibilidad Y
+        const xAxis = (window.innerWidth / 2 - e.pageX) / 40;
+        const yAxis = (window.innerHeight / 2 - e.pageY) / 40;
         authCard.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
     });
 
-    function setProgress(percent) {
+    function updateVisuals(percent) {
+        // Anillo SVG
         const offset = circumference - (percent / 100) * circumference;
         circle.style.strokeDashoffset = offset;
+        // Matrix Spotlight
+        techMatrix.style.opacity = percent / 100;
+        const scale = 0.8 + (percent / 100) * 0.2;
+        techMatrix.style.transform = `scale(${scale})`;
     }
 
     function startAuth(e) {
         if (isProcessing) return;
-        if (e.type === 'mousedown' && e.button !== 0) return; // Solo clic izquierdo
+        if (e.type === 'mousedown' && e.button !== 0) return;
         
         isAuthorizing = true;
         let techIndex = 0;
 
-        // --- OPCIÓN 3: DETENER RESPIRACIÓN BIOMÉTRICA AL INTERACTUAR ---
-        circle.style.animation = "none"; // Congela la animación CSS
+        circle.style.animation = "none";
         circle.style.opacity = "1";
 
         clearInterval(authInterval);
         authInterval = setInterval(() => {
-            authProgress += 1.5; // Velocidad de sincronización
-            setProgress(authProgress);
+            authProgress += 1.5;
+            updateVisuals(authProgress);
 
-            // --- EL TUTORIAL: Cambiar el texto cada cierto avance para mostrar stack ---
             if (Math.floor(authProgress) % 8 === 0) {
                 statusText.innerText = `Sincronizando nodo: [ ${techStack[techIndex % techStack.length]} ]...`;
                 statusText.style.color = "#38bdf8";
@@ -72,7 +74,7 @@ function initHoldToUnlock() {
 
             if (authProgress >= 100) {
                 clearInterval(authInterval);
-                executeAISequence(); // ¡Sincronización completada!
+                executeAISequence();
             }
         }, 30);
     }
@@ -82,10 +84,8 @@ function initHoldToUnlock() {
         isAuthorizing = false;
         clearInterval(authInterval);
         
-        // --- RESTAURAR RESPIRACIÓN BIOMÉTRICA SI ABORTA ---
         circle.style.animation = "ringPulse 2s infinite ease-in-out";
 
-        // Vacía la barra suavemente si el usuario suelta antes de tiempo
         authInterval = setInterval(() => {
             authProgress -= 3;
             if (authProgress <= 0) {
@@ -94,11 +94,10 @@ function initHoldToUnlock() {
                 statusText.innerText = "Sincronización interrumpida. Mantenga pulsado.";
                 statusText.style.color = "#94a3b8";
             }
-            setProgress(authProgress);
+            updateVisuals(authProgress);
         }, 20);
     }
 
-    // Eventos de ratón y táctiles
     btn.addEventListener('mousedown', startAuth);
     btn.addEventListener('touchstart', startAuth, {passive: true});
     window.addEventListener('mouseup', stopAuth);
@@ -106,53 +105,53 @@ function initHoldToUnlock() {
 }
 
 // ========================================================
-// SECUENCIA DE UNLOCK Y CARGA DE DATOS (PY)
+// SECUENCIA DE UNLOCK Y FETCH
 // ========================================================
 async function executeAISequence() {
     isProcessing = true;
     const btn = document.getElementById('auth-btn');
     const statusText = document.getElementById('ai-status-text');
     const circle = document.querySelector('.progress-ring__circle');
+    const techMatrix = document.getElementById('tech-matrix');
     const authCard = document.getElementById('auth-card');
 
-    // Cambia al modo procesamiento verde
     btn.classList.add('processing');
     circle.style.stroke = "#10b981"; 
-    statusText.innerText = "Autorización completada. Enlazando API remota...";
+    techMatrix.style.color = "#10b981";
+    techMatrix.style.textShadow = "0 0 25px #10b981";
+    authCard.style.transform = "rotateX(0deg) rotateY(0deg) scale(0.95)";
+    
+    statusText.innerText = "Autorización completada. Enlazando API...";
     statusText.style.color = "#10b981";
-    authCard.style.transform = "rotateX(0deg) rotateY(0deg) scale(0.95)"; // Congela Parallax y encoge
 
     try {
-        // Simulamos un retraso artificial mínimo para disfrutar de la animación visual
         const minAnimTime = new Promise(resolve => setTimeout(resolve, 1500));
-        
         const fetchPromise = fetch(`${BASE_URL}/api/cv-data`).then(res => {
             if (!res.ok) throw new Error();
             return res.json();
         });
 
-        // Esperamos ambas cosas (tiempo mínimo + llegada de datos reales de Python)
         const [_, data] = await Promise.all([minAnimTime, fetchPromise]);
-        
         apiData = data;
-        statusText.innerText = "Acceso concedido. Abriendo perfil.";
+        statusText.innerText = "Acceso concedido.";
         
-        // Poblamos el HTML real (Mismo código de rellenado anterior)
         renderPortfolioData();
 
-        // Transición estética final
         setTimeout(() => {
             document.getElementById('ai-boot-screen').style.opacity = '0';
             setTimeout(() => {
                 document.getElementById('ai-boot-screen').style.display = 'none';
                 document.getElementById('main-portfolio').style.display = 'block';
                 
-                // Disparamos animaciones de barras de skills en el portafolio real
                 document.querySelectorAll('.progress-fill').forEach(bar => {
                     const target = bar.getAttribute('data-val');
                     bar.style.transition = "width 1.5s cubic-bezier(0.1, 1, 0.1, 1)";
                     bar.style.width = `${target}%`;
                 });
+                
+                // Iniciamos el mundo 3D solo cuando la vista principal ya es visible
+                iniciarTelemetria3D();
+                
             }, 800);
         }, 800);
 
@@ -164,9 +163,12 @@ async function executeAISequence() {
     }
 }
 
+// ========================================================
+// POBLAR DATOS DEL CV EN EL DOM
+// ========================================================
 function renderPortfolioData() {
-    // Recuerda que el HTML principal ya tiene tu nombre completo, así que rellenamos el resto.
-    // document.getElementById('web-nombre').innerText = apiData.info_personal.nombre;
+    document.getElementById('web-nombre').innerText = apiData.info_personal.nombre;
+    document.getElementById('web-titulo').innerText = apiData.info_personal.perfil_corto;
     document.getElementById('web-resumen').innerText = apiData.info_personal.resumen;
 
     apiData.skills.forEach(skill => {
@@ -193,7 +195,60 @@ function renderPortfolioData() {
 }
 
 // ========================================================
-// DESCARGA PDF DESDE BACKEND PYTHON ( FPDP2 )
+// TELEMETRÍA 3D GLOBE.GL
+// ========================================================
+async function iniciarTelemetria3D() {
+    const telemetryContainer = document.getElementById('telemetry-data');
+    const globeContainer = document.getElementById('globe-container');
+
+    try {
+        const res = await fetch(`${BASE_URL}/api/telemetry`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+
+        telemetryContainer.innerHTML = `
+            <div style="color: #10b981; margin-bottom: 15px; font-weight: bold;">[ ENLACE ESTABLECIDO ]</div>
+            <div><span style="color:#64748b">IP Client:</span> ${data.ip}</div>
+            <div><span style="color:#64748b">ISP Node:</span> ${data.isp}</div>
+            <div><span style="color:#64748b">Location:</span> ${data.city}, ${data.country}</div>
+            <div><span style="color:#64748b">Coords:</span> LAT ${data.lat} / LON ${data.lon}</div>
+            <div style="margin-top: 15px; color: #f59e0b; font-size: 0.85rem;" class="blink">>>> Monitoreo de seguridad SOC activo.</div>
+        `;
+
+        const world = Globe()
+            (globeContainer)
+            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+            .backgroundColor('#0f172a')
+            .width(300)
+            .height(300);
+
+        world.controls().autoRotate = true;
+        world.controls().autoRotateSpeed = 4.0;
+        world.pointOfView({ altitude: 2.5 });
+
+        world.htmlElementsData([{ lat: data.lat, lng: data.lon }])
+            .htmlElement(() => {
+                const el = document.createElement('div');
+                el.innerHTML = `
+                    <div style="width: 20px; height: 20px; background: radial-gradient(circle, #10b981 0%, transparent 70%); border-radius: 50%; animation: ringPulse 1.5s infinite;"></div>
+                    <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; position: absolute; top: 6px; left: 6px;"></div>
+                `;
+                return el;
+            });
+
+        // Zoom In Coreográfico a los 3.5 segundos
+        setTimeout(() => {
+            world.controls().autoRotate = false;
+            world.pointOfView({ lat: data.lat, lng: data.lon, altitude: 0.4 }, 2500);
+        }, 3500);
+
+    } catch (error) {
+        telemetryContainer.innerHTML = `<span style="color: #ef4444;">[ ERROR ]<br>Bloqueo de Firewall detectado. No se pudo establecer la telemetría.</span>`;
+    }
+}
+
+// ========================================================
+// DESCARGA DE PDF
 // ========================================================
 async function descargarCV() {
     const btn = document.getElementById('downloadBtn');
