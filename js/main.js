@@ -1,170 +1,164 @@
 const BASE_URL = "https://anderson-cv-api.onrender.com";
 
 let apiData = null;
-let connectionsCount = 0;
-let selectedNode = null;
-const totalConnectionsRequired = 3;
+let isAuthorizing = false;
+let authProgress = 0;
+let authInterval;
+let isProcessing = false;
 
-// --- CONFIGURACIÓN DE EVENT LISTENERS ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Inicializar lógica de nodos
-    initializeNodes();
-    
-    // Iniciar fetch de datos
-    fetchAPIData();
-
-    // Asignar eventos a los botones principales
-    document.getElementById('enter-system-btn').addEventListener('click', enterPortfolio);
+    initHoldToUnlock();
     document.getElementById('downloadBtn').addEventListener('click', descargarCV);
 });
 
-// --- MOTOR DEL JUEGO DE INTERCONEXIÓN ---
-function initializeNodes() {
-    document.querySelectorAll('.node').forEach(node => {
-        node.addEventListener('click', () => {
-            if (node.classList.contains('connected')) return;
+function initHoldToUnlock() {
+    const btn = document.getElementById('auth-btn');
+    const circle = document.querySelector('.progress-ring__circle');
+    const statusText = document.getElementById('ai-status-text');
+    
+    // Cálculo para el SVG Ring
+    const radius = circle.r.baseVal.value;
+    const circumference = radius * 2 * Math.PI;
+    circle.style.strokeDasharray = `${circumference} ${circumference}`;
+    circle.style.strokeDashoffset = circumference;
 
-            const side = node.getAttribute('data-side');
+    function setProgress(percent) {
+        const offset = circumference - (percent / 100) * circumference;
+        circle.style.strokeDashoffset = offset;
+    }
 
-            if (side === 'left') {
-                if (selectedNode) selectedNode.classList.remove('selected');
-                selectedNode = node;
-                node.classList.add('selected');
-            } else if (side === 'right' && selectedNode) {
-                // Intento de conexión
-                if (selectedNode.getAttribute('data-match') === node.getAttribute('data-match')) {
-                    // ¡Combinación correcta!
-                    drawCable(selectedNode, node);
-                    selectedNode.classList.remove('selected');
-                    selectedNode.classList.add('connected');
-                    node.classList.add('connected');
-                    selectedNode = null;
-                    connectionsCount++;
-                    
-                    checkGameCompletion();
-                } else {
-                    // Error de emparejamiento
-                    node.classList.add('error-flash');
-                    selectedNode.classList.add('error-flash');
-                    setTimeout(() => {
-                        node.classList.remove('error-flash');
-                        selectedNode.classList.remove('error-flash');
-                        selectedNode.classList.remove('selected');
-                        selectedNode = null;
-                    }, 4000);
-                }
+    function startAuth(e) {
+        if (isProcessing) return;
+        // Evita que el click derecho o arrastrar interfiera
+        if (e.type === 'mousedown' && e.button !== 0) return; 
+        
+        isAuthorizing = true;
+        statusText.innerText = "Autorizando credenciales...";
+        statusText.style.color = "#38bdf8";
+
+        clearInterval(authInterval);
+        authInterval = setInterval(() => {
+            authProgress += 2; // Velocidad de llenado
+            setProgress(authProgress);
+
+            if (authProgress >= 100) {
+                clearInterval(authInterval);
+                executeAISequence(); // Desbloqueado!
             }
+        }, 30);
+    }
+
+    function stopAuth() {
+        if (isProcessing) return;
+        isAuthorizing = false;
+        clearInterval(authInterval);
+        
+        // Regresa la barra a 0 suavemente
+        authInterval = setInterval(() => {
+            authProgress -= 4;
+            if (authProgress <= 0) {
+                authProgress = 0;
+                clearInterval(authInterval);
+                statusText.innerText = "Autorización abortada. Mantenga pulsado.";
+                statusText.style.color = "#64748b";
+            }
+            setProgress(authProgress);
+        }, 20);
+    }
+
+    // Eventos para PC y Móviles
+    btn.addEventListener('mousedown', startAuth);
+    btn.addEventListener('touchstart', startAuth, {passive: true});
+    window.addEventListener('mouseup', stopAuth);
+    window.addEventListener('touchend', stopAuth);
+}
+
+// Secuencia cuando el usuario completa el anillo
+async function executeAISequence() {
+    isProcessing = true;
+    const btn = document.getElementById('auth-btn');
+    const statusText = document.getElementById('ai-status-text');
+    const circle = document.querySelector('.progress-ring__circle');
+
+    // Cambiar UI a modo procesamiento (Muestra el orbe giratorio)
+    btn.classList.add('processing');
+    circle.style.stroke = "#10b981"; // Cambia anillo a verde
+    statusText.innerText = "Iniciando motor neuronal...";
+    statusText.style.color = "#10b981";
+
+    try {
+        // Simulamos un poco de tiempo artificial (1.5s) para que el usuario 
+        // pueda disfrutar de la animación visual incluso si la API es ultra rápida.
+        const minAnimTime = new Promise(resolve => setTimeout(resolve, 1500));
+        
+        statusText.innerText = "Extrayendo perfil desde Render Serverless...";
+        
+        // Petición real a tu API en Python
+        const fetchPromise = fetch(`${BASE_URL}/api/cv-data`).then(res => {
+            if (!res.ok) throw new Error();
+            return res.json();
         });
+
+        // Esperamos ambas cosas (que pase el tiempo mínimo y que llegue la data)
+        const [_, data] = await Promise.all([minAnimTime, fetchPromise]);
+        
+        apiData = data;
+        statusText.innerText = "Datos compilados. Abriendo interfaz...";
+        
+        // Llenar el HTML (Igual que antes)
+        renderPortfolioData();
+
+        // Transición de salida
+        setTimeout(() => {
+            document.getElementById('ai-boot-screen').style.opacity = '0';
+            document.getElementById('ai-boot-screen').style.visibility = 'hidden';
+            document.getElementById('main-portfolio').style.display = 'block';
+            
+            // Animación de barras de skills
+            document.querySelectorAll('.progress-fill').forEach(bar => {
+                const target = bar.getAttribute('data-val');
+                bar.style.transition = "width 1.5s cubic-bezier(0.1, 1, 0.1, 1)";
+                bar.style.width = `${target}%`;
+            });
+        }, 800);
+
+    } catch (error) {
+        statusText.innerText = "Error de conexión (Cold Start). Reintentando...";
+        statusText.style.color = "#ef4444";
+        circle.style.stroke = "#ef4444";
+        setTimeout(() => { window.location.reload(); }, 4000);
+    }
+}
+
+function renderPortfolioData() {
+    document.getElementById('web-nombre').innerText = apiData.info_personal.nombre;
+    document.getElementById('web-titulo').innerText = apiData.info_personal.perfil_corto;
+    document.getElementById('web-resumen').innerText = apiData.info_personal.resumen;
+
+    apiData.skills.forEach(skill => {
+        const html = `
+            <div class="skill-container">
+                <div class="skill-name"><span>${skill.name}</span><span>${skill.percentage}%</span></div>
+                <div class="progress-bar"><div class="progress-fill" data-val="${skill.percentage}"></div></div>
+            </div>`;
+        document.getElementById(`skills-${skill.category}`).innerHTML += html;
+    });
+
+    apiData.experiencia.forEach(exp => {
+        let liHtml = exp.detalles.map(d => `<li>${d}</li>`).join('');
+        let tagsHtml = exp.tags ? exp.tags.map(t => `<span class="tag">${t}</span>`).join('') : '';
+        const expHtml = `
+            <div class="timeline-item">
+                <div class="timeline-header"><span>${exp.cargo}</span><span>${exp.fechas}</span></div>
+                <div class="timeline-company">${exp.empresa}</div>
+                <ul>${liHtml}</ul>
+                <div class="tag-container">${tagsHtml}</div>
+            </div>`;
+        document.getElementById('experience-container').innerHTML += expHtml;
     });
 }
 
-// Función para mapear y dibujar los cables usando SVG
-function drawCable(nodeLeft, nodeRight) {
-    const canvas = document.getElementById('svg-canvas');
-    const boardRect = document.getElementById('game-board').getBoundingClientRect();
-    const leftRect = nodeLeft.getBoundingClientRect();
-    const rightRect = nodeRight.getBoundingClientRect();
-
-    // Calcular puntos relativos de los jacks
-    const x1 = leftRect.right - boardRect.left - 20;
-    const y1 = leftRect.top + (leftRect.height / 2) - boardRect.top;
-    const x2 = rightRect.left - boardRect.left + 20;
-    const y2 = rightRect.top + (rightRect.height / 2) - boardRect.top;
-
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1", x1); line.setAttribute("y1", y1);
-    line.setAttribute("x2", x2); line.setAttribute("y2", y2);
-    line.setAttribute("class", "cable-stable");
-    canvas.appendChild(line);
-}
-
-// --- VERIFICACIÓN DE ESTADO COMBINADO ---
-function checkGameCompletion() {
-    if (connectionsCount === totalConnectionsRequired) {
-        document.getElementById('access-panel').style.display = 'block';
-        evaluateSystemReady();
-    }
-}
-
-function evaluateSystemReady() {
-    const msgEl = document.getElementById('sync-msg');
-    const enterBtn = document.getElementById('enter-system-btn');
-
-    if (connectionsCount === totalConnectionsRequired && apiData) {
-        msgEl.innerText = "ESTADO: ENLACE COMPLETO. API RESPONDDIENDO DESDE RENDER [ONLINE]";
-        msgEl.style.color = "var(--accent-green)";
-        enterBtn.disabled = false;
-    } else if (connectionsCount === totalConnectionsRequired && !apiData) {
-        msgEl.innerText = "CABLEADO COMPLETO. ESPERANDO RESPUESTA DE LA API EN LA NUBE (COLD START)...";
-        msgEl.style.color = "var(--accent-blue)";
-    }
-}
-
-// --- CONSUMO ASÍNCRONO DE LA API (ÚNICA FUENTE DE VERDAD) ---
-async function fetchAPIData() {
-    try {
-        const response = await fetch(`${BASE_URL}/api/cv-data`);
-        if (!response.ok) throw new Error();
-        apiData = await response.json();
-
-        // Poblar la UI de forma transparente tras bambalinas
-        document.getElementById('web-nombre').innerText = apiData.info_personal.nombre;
-        document.getElementById('web-titulo').innerText = apiData.info_personal.perfil_corto;
-        document.getElementById('web-resumen').innerText = apiData.info_personal.resumen;
-
-        apiData.skills.forEach(skill => {
-            const html = `
-                <div class="skill-container">
-                    <div class="skill-name"><span>${skill.name}</span><span>${skill.percentage}%</span></div>
-                    <div class="progress-bar"><div class="progress-fill" data-val="${skill.percentage}"></div></div>
-                </div>`;
-            document.getElementById(`skills-${skill.category}`).innerHTML += html;
-        });
-
-        apiData.experiencia.forEach(exp => {
-            let liHtml = exp.detalles.map(d => `<li>${d}</li>`).join('');
-            let tagsHtml = exp.tags ? exp.tags.map(t => `<span class="tag">${t}</span>`).join('') : '';
-            const expHtml = `
-                <div class="timeline-item">
-                    <div class="timeline-header"><span>${exp.cargo}</span><span>${exp.fechas}</span></div>
-                    <div class="timeline-company">${exp.empresa}</div>
-                    <ul>${liHtml}</ul>
-                    <div class="tag-container">${tagsHtml}</div>
-                </div>`;
-            document.getElementById('experience-container').innerHTML += expHtml;
-        });
-
-        // Si el usuario ya terminó el juego, evaluamos de inmediato
-        evaluateSystemReady();
-
-    } catch (error) {
-        console.error("Fallo al conectar con la API, reintentando...", error);
-        // Manejo automático de reintentos por caída o retraso del Cold Start
-        setTimeout(() => { window.location.reload(); }, 6000);
-    }
-}
-
-// --- TRANSICIÓN ESTÉTICA ---
-function enterPortfolio() {
-    const screen = document.getElementById('soc-screen');
-    const main = document.getElementById('main-portfolio');
-    
-    screen.classList.add('fade-out');
-    
-    setTimeout(() => {
-        screen.style.display = 'none';
-        main.style.display = 'block';
-        
-        // Disparar las animaciones de carga de barras de progreso
-        document.querySelectorAll('.progress-fill').forEach(bar => {
-            const target = bar.getAttribute('data-val');
-            bar.style.transition = "width 1.5s cubic-bezier(0.1, 1, 0.1, 1)";
-            bar.style.width = `${target}%`;
-        });
-    }, 800);
-}
-
-// --- DESCARGA DEL PDF BINARIO NATIVO ---
+// ... Mantén tu función descargarCV() exactamente igual aquí abajo ...
 async function descargarCV() {
     const btn = document.getElementById('downloadBtn');
     btn.disabled = true;

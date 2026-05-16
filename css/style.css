@@ -1,179 +1,90 @@
-:root {
-    --bg-color: #090d16;
-    --text-color: #cbd5e1;
-    --accent-blue: #38bdf8;
-    --accent-green: #10b981;
-    --accent-red: #ef4444;
-    --card-bg: #111827;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    line-height: 1.6;
-    overflow-x: hidden;
-}
-
 /* ========================================================
-   PANTALLA DE CARGA INTERACTIVA: SOC CABLEADO
+   PANTALLA DE CARGA IA: HOLD TO AUTHORIZE
    ======================================================== */
-#soc-screen {
+#ai-boot-screen {
     position: fixed;
     top: 0; left: 0; width: 100vw; height: 100vh;
-    background-color: #030712;
+    background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
     z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+.ai-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 20px;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 50px;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    width: 90%;
+    max-width: 500px;
 }
 
-.soc-header {
-    text-align: center;
-    margin-bottom: 30px;
-    max-width: 600px;
+.ai-header { text-align: center; margin-bottom: 40px; }
+.ai-header h2 { 
+    color: #f8fafc; font-size: 1.4rem; letter-spacing: 2px; 
+    margin-bottom: 8px; font-weight: 600;
 }
+.ai-header p { color: #64748b; font-size: 0.9rem; }
 
-.soc-header h2 { 
-    color: var(--accent-red); 
-    font-family: monospace; 
-    font-size: 1.5rem; 
-    margin-bottom: 10px; 
-    text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); 
-}
-
-.soc-header p { font-size: 0.95rem; color: #9ca3af; }
-
-/* Contenedor del Juego */
-.game-container {
+/* El Wrapper del Botón y el Anillo */
+.ai-core-wrapper {
     position: relative;
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    max-width: 650px;
-    background-color: #0b1329;
-    border: 1px solid #1e293b;
-    border-radius: 12px;
-    padding: 40px;
-    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.7);
+    width: 160px; height: 160px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 40px;
 }
 
-.column { display: flex; flex-direction: column; gap: 30px; z-index: 2; }
+.progress-ring { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+.progress-ring__circle {
+    stroke-dasharray: 465; /* Circunferencia de r=74 */
+    stroke-dashoffset: 465;
+    transition: stroke-dashoffset 0.1s linear;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
+}
 
-/* Nodos de Conexión */
-.node {
-    background-color: #1f293d;
-    border: 2px solid #334155;
-    color: #fff;
-    padding: 12px 20px;
-    border-radius: 8px;
+.auth-button {
+    width: 130px; height: 130px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(145deg, #1e293b, #0f172a);
+    box-shadow:  10px 10px 20px #080d17, -10px -10px 20px #16213d;
+    color: var(--accent-blue);
+    font-weight: 600; font-size: 0.85rem; letter-spacing: 1px;
     cursor: pointer;
-    font-family: monospace;
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-    user-select: none;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: flex; align-items: center; justify-content: center;
+    outline: none;
 }
 
-.node:hover:not(.connected) { 
-    border-color: var(--accent-blue); 
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); 
+.auth-button:hover { box-shadow:  inset 5px 5px 10px #080d17, inset -5px -5px 10px #16213d; }
+.auth-button:active { transform: scale(0.95); }
+
+/* El Orbe de IA que aparece al autorizar */
+.ai-orb {
+    position: absolute; top: 5%; left: 5%; width: 90%; height: 90%;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0%, var(--accent-blue) 25%, transparent 50%, var(--accent-green) 75%, transparent 100%);
+    opacity: 0; visibility: hidden;
+    animation: spinCore 2s linear infinite;
+    filter: blur(8px);
 }
 
-.node.selected { border-color: var(--accent-blue); background-color: #0f2d4a; }
-.node.connected { background-color: #062f22; border-color: var(--accent-green); cursor: default; color: #a7f3d0; }
-.node.error-flash { animation: flashRed 0.4s ease; }
+.processing .auth-text { opacity: 0; }
+.processing .ai-orb { opacity: 1; visibility: visible; }
+.processing .auth-button { cursor: default; transform: scale(0.95); box-shadow: 0 0 30px rgba(56, 189, 248, 0.4); }
 
-/* Punto físico de parcheo */
-.jack { width: 10px; height: 10px; background-color: #475569; border-radius: 50%; display: inline-block; }
-.connected .jack { background-color: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
-.selected .jack { background-color: var(--accent-blue); box-shadow: 0 0 8px var(--accent-blue); }
+.ai-status { height: 20px; text-align: center; }
+.typing-text { color: var(--accent-blue); font-family: monospace; font-size: 0.95rem; }
 
-/* Capa SVG para dibujar los cables de fibra óptica */
-#svg-canvas {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 1;
-}
-
-.cable { stroke: var(--accent-blue); stroke-width: 3; stroke-dasharray: 5; animation: laser 2s linear infinite; }
-.cable-stable { stroke: var(--accent-green); stroke-width: 3; filter: drop-shadow(0px 0px 4px var(--accent-green)); }
-
-/* Pantalla de autorización final */
-#access-panel {
-    display: none;
-    text-align: center;
-    margin-top: 25px;
-    animation: fadeIn 0.5s ease-out;
-}
-
-.sync-message { margin-bottom: 15px; font-family: monospace; font-size: 0.95rem; }
-
-.btn-access {
-    background-color: transparent; border: 2px solid var(--accent-green); color: var(--accent-green);
-    padding: 15px 40px; font-family: monospace; font-size: 1.2rem; font-weight: bold;
-    border-radius: 6px; cursor: pointer; transition: all 0.3s;
-    text-shadow: 0 0 5px var(--accent-green); box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
-}
-
-.btn-access:hover:not(:disabled) { 
-    background-color: var(--accent-green); color: #000; box-shadow: 0 0 20px var(--accent-green); 
-}
-.btn-access:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* ========================================================
-   ESTILOS DEL PORTAFOLIO PRINCIPAL
-   ======================================================== */
-.main-content { display: none; padding: 40px 20px; }
-.container { max-width: 900px; margin: 0 auto; animation: fadeIn 1s ease-out; }
-
-header { text-align: center; margin-bottom: 40px; }
-header h1 { font-size: 2.5rem; color: #fff; margin-bottom: 5px; letter-spacing: -0.5px; }
-header h2 { font-size: 1.25rem; color: var(--accent-blue); font-weight: normal; }
-.resumen { color: #94a3b8; margin-top: 20px; text-align: justify; background: #0f172a; padding: 20px; border-radius: 8px; border: 1px solid #1e293b; }
-
-.section-title { font-size: 1.5rem; margin: 40px 0 20px 0; border-left: 4px solid var(--accent-blue); padding-left: 15px; color: #fff; }
-
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-.card { background-color: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid #1e293b; }
-.card-title { color: var(--accent-blue); margin-bottom: 20px; font-size: 1.15rem; }
-
-/* Skills Bars */
-.skill-container { margin-bottom: 18px; }
-.skill-name { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 6px; font-size: 0.9rem; }
-.progress-bar { background-color: #1f2937; height: 8px; border-radius: 4px; overflow: hidden; }
-.progress-fill { height: 100%; background: linear-gradient(90deg, #0284c7, var(--accent-blue)); width: 0; }
-
-/* Timeline */
-.timeline-item { margin-bottom: 25px; border-bottom: 1px solid #1e293b; padding-bottom: 20px; }
-.timeline-header { display: flex; justify-content: space-between; color: var(--accent-blue); font-weight: bold; font-size: 1.05rem; }
-.timeline-company { font-style: italic; color: #64748b; font-size: 0.9rem; margin-bottom: 10px; }
-.timeline-item ul { padding-left: 20px; color: #94a3b8; font-size: 0.95rem; }
-.timeline-item li { margin-bottom: 5px; }
-
-/* Tags */
-.tag-container { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
-.tag { background: #1e293b; color: var(--accent-blue); font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; font-family: monospace; }
-
-/* Descarga */
-.download-section { text-align: center; margin: 60px 0; }
-.btn-download {
-    background-color: var(--accent-blue); color: #0f172a; border: none;
-    padding: 16px 35px; font-size: 1.1rem; font-weight: bold; border-radius: 8px;
-    cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center;
-}
-.btn-download:hover { background-color: #7dd3fc; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.3); }
-.btn-download:disabled { background-color: #475569; cursor: not-allowed; transform: none; box-shadow: none; }
-
-/* Animaciones */
-@keyframes laser { to { stroke-dashoffset: -20; } }
-@keyframes flashRed { 0%, 100% { border-color: #334155; } 50% { border-color: var(--accent-red); background-color: #311515; } }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.fade-out { animation: fadeOutEffect 0.8s forwards; }
-@keyframes fadeOutEffect { to { opacity: 0; visibility: hidden; } }
+@keyframes spinCore { 100% { transform: rotate(360deg); } }

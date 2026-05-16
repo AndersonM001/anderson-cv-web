@@ -1,85 +1,23 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anderson Moncada | Security Operations Center Portfolio</title>
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-
-    <div id="soc-screen">
-        <div class="soc-header">
-            <h2>[ ALERTA: INFRAESTRUCTURA DESCONECTADA ]</h2>
-            <p>Cruza los cables de parcheo de fibra óptica emparejando la capa de software izquierda con su respectivo stack técnico derecho para enlazar la API remota de Python.</p>
-        </div>
-
-        <div class="game-container" id="game-board">
-            <svg id="svg-canvas"></svg>
-
-            <div class="column">
-                <div class="node" data-side="left" data-match="mobile" id="node-mobile">
-                    <span>Capa Mobile UI</span> <span class="jack"></span>
-                </div>
-                <div class="node" data-side="left" data-match="api" id="node-api">
-                    <span>Microservicios Core</span> <span class="jack"></span>
-                </div>
-                <div class="node" data-side="left" data-match="security" id="node-security">
-                    <span>Gobierno de Datos</span> <span class="jack"></span>
-                </div>
+<div id="ai-boot-screen">
+        <div class="ai-container">
+            <div class="ai-header">
+                <h2>A.M.M.V // NEURAL ENGINE</h2>
+                <p>Verificación de seguridad requerida para acceder al perfil</p>
             </div>
 
-            <div class="column">
-                <div class="node" data-side="right" data-match="security" id="node-iso">
-                    <span class="jack"></span> <span>ISO 27001 Compliance</span>
-                </div>
-                <div class="node" data-side="right" data-match="mobile" id="node-kotlin">
-                    <span class="jack"></span> <span>Kotlin / MVVM</span>
-                </div>
-                <div class="node" data-side="right" data-match="api" id="node-fastapi">
-                    <span class="jack"></span> <span>FastAPI / Python</span>
-                </div>
+            <div class="ai-core-wrapper">
+                <svg class="progress-ring" width="160" height="160">
+                    <circle class="progress-ring__bg" stroke="#1e293b" stroke-width="6" fill="transparent" r="74" cx="80" cy="80"/>
+                    <circle class="progress-ring__circle" stroke="#38bdf8" stroke-width="6" fill="transparent" r="74" cx="80" cy="80"/>
+                </svg>
+                
+                <button id="auth-btn" class="auth-button">
+                    <span class="auth-text">MANTENER<br>PULSADO</span>
+                    <div class="ai-orb"></div> </button>
             </div>
-        </div>
 
-        <div id="access-panel">
-            <p id="sync-msg" class="sync-message"></p>
-            <button id="enter-system-btn" class="btn-access" disabled>[ ACCEDER AL SISTEMA ]</button>
+            <div class="ai-status">
+                <p id="ai-status-text" class="typing-text">Sistema en espera...</p>
+            </div>
         </div>
     </div>
-
-    <div id="main-portfolio" class="main-content">
-        <div class="container">
-            <header>
-                <h1 id="web-nombre">Sincronizando...</h1>
-                <h2 id="web-titulo">...</h2>
-                <p id="web-resumen" class="resumen"></p>
-            </header>
-
-            <div class="grid">
-                <div class="card">
-                    <h3 class="card-title">💻 Ingeniería de Desarrollo</h3>
-                    <div id="skills-desarrollo"></div>
-                </div>
-                <div class="card">
-                    <h3 class="card-title">🛡️ Infraestructura & Ciberseguridad</h3>
-                    <div id="skills-infra"></div>
-                </div>
-            </div>
-
-            <section>
-                <h2 class="section-title">Experiencia Profesional</h2>
-                <div id="experience-container" class="card"></div>
-            </section>
-
-            <section class="download-section">
-                <button id="downloadBtn" class="btn-download">
-                    📥 Generar y Descargar PDF Oficial
-                </button>
-            </section>
-        </div>
-    </div>
-
-    <script src="js/main.js"></script>
-</body>
-</html>
