@@ -1,12 +1,29 @@
 const BASE_URL = "https://anderson-cv-api.onrender.com";
 
+// ========================================================
+// INICIALIZACIÓN DE FIREBASE (FRONTEND)
+// ========================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyBDlSwnQ9oG1qMb2JIP_YwyhLy-VytSZeE",
+    authDomain: "anderson-portfolio-37ac2.firebaseapp.com",
+    projectId: "anderson-portfolio-37ac2",
+    storageBucket: "anderson-portfolio-37ac2.firebasestorage.app",
+    messagingSenderId: "602223038367",
+    appId: "1:602223038367:web:f1b396c2d7dd77ee8e77aa",
+    measurementId: "G-5CKTRZ15CN"
+};
+firebase.initializeApp(firebaseConfig);
+const dbFS = firebase.firestore();
+
+// ========================================================
+// VARIABLES Y EVENTOS
+// ========================================================
 let apiData = null;
 let isAuthorizing = false;
 let authProgress = 0;
 let authInterval;
 let isProcessing = false;
 
-// El stack del tutorial
 const techStack = [
     "Docker Engine", "Kotlin MVVM", "Python / FastAPI", 
     "GLPI & Vaultwarden", "ISO 27001 SOC", "GPO & AD", 
@@ -19,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ========================================================
-// MOTOR DEL TUTORIAL E INTERFAZ 3D (HOLD TO AUTHORIZE)
+// MOTOR DEL TUTORIAL E INTERFAZ (HOLD TO AUTHORIZE)
 // ========================================================
 function initHoldToUnlock() {
     const btn = document.getElementById('auth-btn');
@@ -33,7 +50,6 @@ function initHoldToUnlock() {
     circle.style.strokeDasharray = `${circumference} ${circumference}`;
     circle.style.strokeDashoffset = circumference;
 
-    // Parallax 3D Card Hover
     window.addEventListener('mousemove', (e) => {
         if (isProcessing) return;
         const xAxis = (window.innerWidth / 2 - e.pageX) / 40;
@@ -42,10 +58,8 @@ function initHoldToUnlock() {
     });
 
     function updateVisuals(percent) {
-        // Anillo SVG
         const offset = circumference - (percent / 100) * circumference;
         circle.style.strokeDashoffset = offset;
-        // Matrix Spotlight
         techMatrix.style.opacity = percent / 100;
         const scale = 0.8 + (percent / 100) * 0.2;
         techMatrix.style.transform = `scale(${scale})`;
@@ -54,6 +68,13 @@ function initHoldToUnlock() {
     function startAuth(e) {
         if (isProcessing) return;
         if (e.type === 'mousedown' && e.button !== 0) return;
+        
+        // ACTIVAR PANTALLA COMPLETA MÓVIL
+        if (e.type === 'touchstart') {
+            const docEl = document.documentElement;
+            if (docEl.requestFullscreen) docEl.requestFullscreen().catch(()=>{});
+            else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen().catch(()=>{});
+        }
         
         isAuthorizing = true;
         let techIndex = 0;
@@ -83,7 +104,6 @@ function initHoldToUnlock() {
         if (isProcessing) return;
         isAuthorizing = false;
         clearInterval(authInterval);
-        
         circle.style.animation = "ringPulse 2s infinite ease-in-out";
 
         authInterval = setInterval(() => {
@@ -149,9 +169,7 @@ async function executeAISequence() {
                     bar.style.width = `${target}%`;
                 });
                 
-                // Iniciamos el mundo 3D solo cuando la vista principal ya es visible
                 iniciarTelemetria3D();
-                
             }, 800);
         }, 800);
 
@@ -195,7 +213,7 @@ function renderPortfolioData() {
 }
 
 // ========================================================
-// TELEMETRÍA 3D GLOBE.GL
+// TELEMETRÍA 3D GLOBE.GL Y MULTI-USUARIO FIREBASE
 // ========================================================
 async function iniciarTelemetria3D() {
     const telemetryContainer = document.getElementById('telemetry-data');
@@ -203,47 +221,57 @@ async function iniciarTelemetria3D() {
 
     try {
         const res = await fetch(`${BASE_URL}/api/telemetry`);
-        if (!res.ok) throw new Error();
-        const data = await res.json();
+        const myData = await res.json();
 
         telemetryContainer.innerHTML = `
             <div style="color: #10b981; margin-bottom: 15px; font-weight: bold;">[ ENLACE ESTABLECIDO ]</div>
-            <div><span style="color:#64748b">IP Client:</span> ${data.ip}</div>
-            <div><span style="color:#64748b">ISP Node:</span> ${data.isp}</div>
-            <div><span style="color:#64748b">Location:</span> ${data.city}, ${data.country}</div>
-            <div><span style="color:#64748b">Coords:</span> LAT ${data.lat} / LON ${data.lon}</div>
-            <div style="margin-top: 15px; color: #f59e0b; font-size: 0.85rem;" class="blink">>>> Monitoreo de seguridad SOC activo.</div>
+            <div><span style="color:#64748b">IP Client:</span> ${myData.ip_anonymized || myData.ip}</div>
+            <div><span style="color:#64748b">ISP Node:</span> ${myData.isp}</div>
+            <div><span style="color:#64748b">Location:</span> ${myData.city}, ${myData.country}</div>
+            <div><span style="color:#64748b">Coords:</span> LAT ${myData.lat} / LON ${myData.lon}</div>
+            <div style="margin-top: 15px; color: #f59e0b; font-size: 0.85rem;" class="blink">>>> Monitoreo SOC Multi-usuario Activo</div>
         `;
 
-        const world = Globe()
-            (globeContainer)
+        const world = Globe()(globeContainer)
             .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
             .backgroundColor('#0f172a')
-            .width(300)
-            .height(300);
+            .width(300).height(300);
 
         world.controls().autoRotate = true;
-        world.controls().autoRotateSpeed = 4.0;
+        world.controls().autoRotateSpeed = 3.0;
         world.pointOfView({ altitude: 2.5 });
 
-        world.htmlElementsData([{ lat: data.lat, lng: data.lon }])
-            .htmlElement(() => {
-                const el = document.createElement('div');
-                el.innerHTML = `
-                    <div style="width: 20px; height: 20px; background: radial-gradient(circle, #10b981 0%, transparent 70%); border-radius: 50%; animation: ringPulse 1.5s infinite;"></div>
-                    <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; position: absolute; top: 6px; left: 6px;"></div>
-                `;
-                return el;
+        // ESCUCHA FIREBASE TIEMPO REAL
+        dbFS.collection("active_users").onSnapshot((snapshot) => {
+            const activeUsers = [];
+            snapshot.forEach((doc) => {
+                // Solo muestra usuarios activos en los últimos 10 minutos
+                if ((Date.now() / 1000) - doc.data().timestamp < 600) {
+                    activeUsers.push(doc.data());
+                }
             });
+            
+            world.htmlElementsData(activeUsers)
+                .htmlElement(d => {
+                    const el = document.createElement('div');
+                    const isMe = (d.ip_anonymized === myData.ip_anonymized);
+                    const color = isMe ? '#10b981' : '#38bdf8'; // Verde yo, Azul los demás
+                    
+                    el.innerHTML = `
+                        <div style="width: ${isMe ? '20px' : '12px'}; height: ${isMe ? '20px' : '12px'}; background: radial-gradient(circle, ${color} 0%, transparent 70%); border-radius: 50%; animation: ringPulse 1.5s infinite;"></div>
+                        <div style="width: ${isMe ? '8px' : '6px'}; height: ${isMe ? '8px' : '6px'}; background: ${color}; border-radius: 50%; position: absolute; top: ${isMe ? '6px' : '3px'}; left: ${isMe ? '6px' : '3px'};"></div>
+                    `;
+                    return el;
+                });
+        });
 
-        // Zoom In Coreográfico a los 3.5 segundos
         setTimeout(() => {
             world.controls().autoRotate = false;
-            world.pointOfView({ lat: data.lat, lng: data.lon, altitude: 0.4 }, 2500);
+            world.pointOfView({ lat: myData.lat, lng: myData.lon, altitude: 0.4 }, 2500);
         }, 3500);
 
     } catch (error) {
-        telemetryContainer.innerHTML = `<span style="color: #ef4444;">[ ERROR ]<br>Bloqueo de Firewall detectado. No se pudo establecer la telemetría.</span>`;
+        telemetryContainer.innerHTML = `<span style="color: #ef4444;">[ ERROR ]<br>Bloqueo detectado. Telemetría desactivada.</span>`;
     }
 }
 
@@ -258,7 +286,6 @@ async function descargarCV() {
     try {
         const response = await fetch(`${BASE_URL}/descargar-cv`);
         if (!response.ok) throw new Error();
-        
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
