@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anderson Moncada | Ingeniero de Sistemas</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-color: #e2e8f0;
+            --accent-color: #38bdf8;
+            --card-bg: #1e293b;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        header { text-align: center; margin-bottom: 50px; animation: fadeIn 1s ease-out; }
+        h1 { font-size: 2.5rem; color: var(--accent-color); margin-bottom: 5px; }
+        h2 { font-size: 1.3rem; color: #94a3b8; font-weight: normal; }
+        
+        .section-title { font-size: 1.8rem; margin-bottom: 25px; border-left: 4px solid var(--accent-color); padding-left: 15px; }
+        
+        /* Sistema de Grid para las tarjetas */
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        
+        .card {
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(38, 189, 248, 0.2); }
+        
+        /* Animaciones CSS Puras para las Barras de Skill */
+        .skill-container { margin-bottom: 15px; }
+        .skill-name { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px; }
+        .progress-bar { background-color: #334155; height: 10px; border-radius: 5px; overflow: hidden; }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+            width: 0; /* Inicia en 0 para la animación */
+            animation: fillBars 2s ease-out forwards;
+        }
+        
+        /* Animación del Botón */
+        .btn {
+            background-color: var(--accent-color); color: #0f172a; border: none;
+            padding: 15px 30px; font-size: 1.1rem; font-weight: bold; border-radius: 8px;
+            cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .btn:hover { background-color: #7dd3fc; transform: scale(1.05); }
+        .btn:disabled { background-color: #475569; cursor: not-allowed; transform: none; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fillBars { to { width: var(--w); } } /* Usa una variable CSS para el ancho final */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Anderson Mauricio Moncada Valbuena</h1>
+            <h2>Ingeniero de Sistemas | Mobile, Backend & DevOps</h2>
+        </header>
+
+        <section>
+            <h3 class="section-title">Dominio Técnico</h3>
+            <div class="grid">
+                <div class="card">
+                    <h4 style="color: var(--accent-color); margin-bottom: 15px;">💻 Desarrollo</h4>
+                    <div class="skill-container">
+                        <div class="skill-name"><span>Kotlin (Android MVVM)</span><span>90%</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="--w: 90%;"></div></div>
+                    </div>
+                    <div class="skill-container">
+                        <div class="skill-name"><span>Python (Backend/Scripts)</span><span>85%</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="--w: 85%;"></div></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h4 style="color: var(--accent-color); margin-bottom: 15px;">🛡️ Infra & Ciberseguridad</h4>
+                    <div class="skill-container">
+                        <div class="skill-name"><span>Docker & Vaultwarden</span><span>88%</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="--w: 88%;"></div></div>
+                    </div>
+                    <div class="skill-container">
+                        <div class="skill-name"><span>ISO 27001 & Gestión SOC</span><span>85%</span></div>
+                        <div class="progress-bar"><div class="progress-fill" style="--w: 85%;"></div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section style="text-align: center; margin-top: 50px;">
+            <h3 class="section-title" style="border:none; text-align:center;">Descarga Oficial</h3>
+            <p style="margin-bottom: 20px;">Genera mi Hoja de Vida conectándote a mi API Serverless en Python.</p>
+            <button id="downloadBtn" class="btn" onclick="descargarCV()">
+                📥 Generar y Descargar PDF
+            </button>
+            <p id="statusMsg" style="margin-top: 10px; color: #94a3b8; font-size: 0.9rem;"></p>
+        </section>
+    </div>
+
+    <script>
+        // Lógica Frontend (La API se conecta aquí)
+        async function descargarCV() {
+            const btn = document.getElementById('downloadBtn');
+            const msg = document.getElementById('statusMsg');
+            
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Procesando en el Backend (Python)...';
+            msg.innerText = "Conectando a la API...";
+
+            try {
+                // Aquí pondrás la URL gratuita de Render o Vercel más adelante
+                // const API_URL = "https://tu-api-python.onrender.com/descargar-cv";
+                
+                // Simulación para prueba local
+                await new Promise(r => setTimeout(r, 2000)); 
+                msg.innerText = "¡Simulación exitosa! Aquí el navegador descargaría el PDF devuelto por Python.";
+                
+                // Lógica real que usarás:
+                /*
+                const response = await fetch(API_URL);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'CV_Anderson_Moncada.pdf';
+                document.body.appendChild(a);
+                a.click();
+                */
+            } catch (error) {
+                msg.innerText = "Error al conectar con la API.";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '📥 Generar y Descargar PDF';
+            }
+        }
+    </script>
+</body>
+</html>
