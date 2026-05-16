@@ -213,7 +213,7 @@ function renderPortfolioData() {
 }
 
 // ========================================================
-// TELEMETRÍA 3D MODO RED VECTORIAL HEXAGONAL (PUNTO PLANO)
+// TELEMETRÍA 3D VECTORIAL CON MARCADOR PLANO (FIJO Y ESTABLE)
 // ========================================================
 async function iniciarTelemetria3D() {
     const telemetryContainer = document.getElementById('telemetry-data');
@@ -233,43 +233,39 @@ async function iniciarTelemetria3D() {
             <div style="margin-top: 15px; color: #f59e0b; font-size: 0.85rem;" class="blink">>>> Monitoreo SOC Multi-usuario Activo</div>
         `;
 
-        // INSTANCIAR GLOBO PREMIUM VECTORIAL
+        // INSTANCIAR GLOBO PREMIUM CON MARCADORES WEBGL NATIVOS
         const world = Globe()(globeContainer)
-            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg') // Fondo oscuro de contraste
+            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg') // Base oscura limpia
             .backgroundColor('#0f172a')
             .width(300)
             .height(300)
             .showAtmosphere(true)
-            .atmosphereColor('#38bdf8')
+            .atmosphereColor('#0ea5e9') // Halo de atmósfera cian eléctrico
             
-            // CONFIGURACIÓN DEL MARCADOR: PUNTO CLÁSICO PLANO (BLINDAJE CONTRA TUBOS)
+            // CONFIGURACIÓN DE PUNTOS: MARCADOR COMPLETAMENTE PLANO
             .pointColor(d => d.isMe ? '#10b981' : '#38bdf8') // Verde tú, azul los demás
-            .pointAltitude(0)       // ALTITUD EN 0 ELIMINA EL EFECTO DE TUBO/CILINDRO
-            .pointRadius(0.6)       // Tamaño del punto en el mapa
-            .pointsMerge(true)
-            
-            // CONFIGURACIÓN DE LA MATRIZ HEXAGONAL PARA LAS SILUETAS DEL MUNDO
-            .hexBinPointWeight('pop')
-            .hexBinResolution(3)
-            .hexMargin(0.2)
-            .hexColor(() => 'rgba(56, 189, 248, 0.15)'); // Cuadrícula cian traslúcida muy sutil
+            .pointAltitude(0)       // ALTITUD EN 0 ELIMINA POR COMPLETO EL EFECTO DE TUBO
+            .pointRadius(0.65)      // Tamaño ideal del punto en el mapa
+            .pointsMerge(true);
 
         world.controls().autoRotate = true;
         world.controls().autoRotateSpeed = 1.5;
         world.pointOfView({ altitude: 2.2 });
 
-        // 1. CARGAR DATOS GEOGRÁFICOS PARA GENERAR LAS SILUETAS DE LOS CONTINENTES
+        // CARGAR SILUETAS VECTORIALES DE LOS PAÍSES (ESTILO HOLOGRAMA)
         fetch('//unpkg.com/three-globe/example/data/ne_110m_admin_0_countries.geojson')
-            .then(res => res.json())
+            .then(geojsonRes => geojsonRes.json())
             .then(countries => {
-                // Inyectamos las fronteras vectoriales con líneas de bajo contraste
                 world.polygonsData(countries.features)
-                    .polygonCapMaterial(new THREE.MeshBasicMaterial({ color: '#090d16', opacity: 0.2, transparent: true }))
-                    .polygonSideColor(() => 'rgba(56, 189, 248, 0.12)') // Silueta de países muy fina
-                    .polygonStrokeColor(() => 'rgba(56, 189, 248, 0.25)');
-            }).catch(err => console.log("Aviso: Fallo al mapear polígonos base", err));
+                    // Color de relleno del territorio (oscuro traslúcido)
+                    .polygonCapColor(() => 'rgba(15, 23, 42, 0.6)')
+                    // Línea perimetral de la silueta (neón azul sutil)
+                    .polygonSideColor(() => 'rgba(56, 189, 248, 0.15)')
+                    .polygonStrokeColor(() => 'rgba(56, 189, 248, 0.4)');
+            })
+            .catch(err => console.log("Aviso: Error cargando fronteras vectoriales", err));
 
-        // Función para inyectar los puntos WebGL limpios
+        // Función para inyectar los puntos WebGL nativos
         function updateWebGlPoints(usersList) {
             const formattedPoints = usersList.map(user => ({
                 lat: parseFloat(user.lat),
@@ -279,7 +275,7 @@ async function iniciarTelemetria3D() {
             world.pointsData(formattedPoints);
         }
 
-        // 2. ESCUCHA DE FIREBASE EN TIEMPO REAL (MULTI-USUARIO)
+        // ESCUCHA DE FIREBASE EN TIEMPO REAL (MULTI-USUARIO)
         if (typeof firebase !== 'undefined' && dbFS) {
             dbFS.collection("active_users").onSnapshot((snapshot) => {
                 const activeUsers = [];
@@ -300,7 +296,7 @@ async function iniciarTelemetria3D() {
             updateWebGlPoints([myData]);
         }
 
-        // 3. Zoom In coreográfico balanceado
+        // Zoom In dinámico hacia Zipaquirá
         setTimeout(() => {
             world.controls().autoRotate = false;
             world.pointOfView({ 
