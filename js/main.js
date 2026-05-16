@@ -213,7 +213,7 @@ function renderPortfolioData() {
 }
 
 // ========================================================
-// TELEMETRÍA 3D GLOBE.GL Y MULTI-USUARIO FIREBASE
+// TELEMETRÍA 3D GLOBE.GL Y MULTI-USUARIO - VERSIÓN ULTRA PREMIUM
 // ========================================================
 async function iniciarTelemetria3D() {
     const telemetryContainer = document.getElementById('telemetry-data');
@@ -223,6 +223,7 @@ async function iniciarTelemetria3D() {
         const res = await fetch(`${BASE_URL}/api/telemetry`);
         const myData = await res.json();
 
+        // Actualizar datos de consola
         telemetryContainer.innerHTML = `
             <div style="color: #10b981; margin-bottom: 15px; font-weight: bold;">[ ENLACE ESTABLECIDO ]</div>
             <div><span style="color:#64748b">IP Client:</span> ${myData.ip_anonymized || myData.ip}</div>
@@ -232,46 +233,84 @@ async function iniciarTelemetria3D() {
             <div style="margin-top: 15px; color: #f59e0b; font-size: 0.85rem;" class="blink">>>> Monitoreo SOC Multi-usuario Activo</div>
         `;
 
+        // INSTANCIAR EL GLOBO CON CAPAS VISUALES MEJORADAS
         const world = Globe()(globeContainer)
-            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+            // Cambiamos a una textura nocturna con luces vectoriales de alta definición
+            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
             .backgroundColor('#0f172a')
-            .width(300).height(300);
+            .width(300)
+            .height(300)
+            // AGREGAMOS EFECTO DE ATMÓSFERA CIBERNÉTICA (Esto resalta el mapa)
+            .showAtmosphere(true)
+            .atmosphereColor('#38bdf8')
+            .atmosphereDaylightAlpha(0.15);
 
         world.controls().autoRotate = true;
-        world.controls().autoRotateSpeed = 3.0;
-        world.pointOfView({ altitude: 2.5 });
+        world.controls().autoRotateSpeed = 2.5;
+        world.pointOfView({ altitude: 2.3 });
 
-        // ESCUCHA FIREBASE TIEMPO REAL
-        dbFS.collection("active_users").onSnapshot((snapshot) => {
-            const activeUsers = [];
-            snapshot.forEach((doc) => {
-                // Solo muestra usuarios activos en los últimos 10 minutos
-                if ((Date.now() / 1000) - doc.data().timestamp < 600) {
-                    activeUsers.push(doc.data());
-                }
-            });
-            
-            world.htmlElementsData(activeUsers)
+        // Función para renderizar los marcadores de forma segura en el DOM del canvas
+        function renderMarkers(usersList) {
+            world.htmlElementsData(usersList)
                 .htmlElement(d => {
                     const el = document.createElement('div');
                     const isMe = (d.ip_anonymized === myData.ip_anonymized);
-                    const color = isMe ? '#10b981' : '#38bdf8'; // Verde yo, Azul los demás
+                    const color = isMe ? '#10b981' : '#38bdf8'; 
                     
+                    // Aseguramos tamaño, z-index alto y visibilidad absoluta para que no se escondan tras el relieve
+                    el.style.position = 'absolute';
+                    el.style.transform = 'translate(-50%, -50%)';
+                    el.style.zIndex = '9999';
+                    el.style.pointerEvents = 'none';
+
                     el.innerHTML = `
-                        <div style="width: ${isMe ? '20px' : '12px'}; height: ${isMe ? '20px' : '12px'}; background: radial-gradient(circle, ${color} 0%, transparent 70%); border-radius: 50%; animation: ringPulse 1.5s infinite;"></div>
-                        <div style="width: ${isMe ? '8px' : '6px'}; height: ${isMe ? '8px' : '6px'}; background: ${color}; border-radius: 50%; position: absolute; top: ${isMe ? '6px' : '3px'}; left: ${isMe ? '6px' : '3px'};"></div>
+                        <div style="width: ${isMe ? '24px' : '16px'}; height: ${isMe ? '24px' : '16px'}; background: radial-gradient(circle, ${color} 20%, transparent 70%); border-radius: 50%; animation: ringPulse 1.5s infinite ease-in-out;"></div>
+                        <div style="width: ${isMe ? '8px' : '6px'}; height: ${isMe ? '8px' : '6px'}; background: ${color}; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 8px ${color};"></div>
                     `;
                     return el;
                 });
-        });
+        }
 
+        // ESCUCHA FIREBASE TIEMPO REAL MULTI-USUARIO
+        if (typeof firebase !== 'undefined' && dbFS) {
+            dbFS.collection("active_users").onSnapshot((snapshot) => {
+                const activeUsers = [];
+                snapshot.forEach((doc) => {
+                    // Validamos que el registro tenga coordenadas válidas antes de inyectarlo
+                    const u = doc.data();
+                    if (u.lat && u.lon && ((Date.now() / 1000) - u.timestamp < 600)) {
+                        activeUsers.push(u);
+                    }
+                });
+                
+                // Si por alguna razón Firebase devuelve vacío el snapshot inicial, forzamos tu posición
+                if (activeUsers.length === 0) {
+                    activeUsers.push(myData);
+                }
+                
+                renderMarkers(activeUsers);
+            }, error => {
+                console.warn("Firestore restricción de reglas, usando modo local:", error);
+                renderMarkers([myData]);
+            });
+        } else {
+            // Fallback inmediato si Firebase no está inicializado en frontend
+            renderMarkers([myData]);
+        }
+
+        // COREOGRAFÍA: Detener rotación y Zoom In al usuario principal
         setTimeout(() => {
             world.controls().autoRotate = false;
-            world.pointOfView({ lat: myData.lat, lng: myData.lon, altitude: 0.4 }, 2500);
+            world.pointOfView({ 
+                lat: myData.lat, 
+                lng: myData.lon, 
+                altitude: 0.45 // Un zoom balanceado para apreciar el mapa de noche
+            }, 2500);
         }, 3500);
 
     } catch (error) {
-        telemetryContainer.innerHTML = `<span style="color: #ef4444;">[ ERROR ]<br>Bloqueo detectado. Telemetría desactivada.</span>`;
+        console.error("Error en módulo 3D:", error);
+        telemetryContainer.innerHTML = `<span style="color: #ef4444;">[ ERROR ]<br>Fallo en inicialización de entorno 3D.</span>`;
     }
 }
 
