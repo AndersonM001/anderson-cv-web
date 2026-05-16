@@ -108,42 +108,57 @@
         </section>
     </div>
 
-    <script>
-        // Lógica Frontend (La API se conecta aquí)
-        async function descargarCV() {
+    async function descargarCV() {
             const btn = document.getElementById('downloadBtn');
             const msg = document.getElementById('statusMsg');
             
+            // 1. Cambiamos el estado del botón a "Cargando"
             btn.disabled = true;
-            btn.innerHTML = '⏳ Procesando en el Backend (Python)...';
-            msg.innerText = "Conectando a la API...";
+            btn.innerHTML = '⏳ Procesando en el servidor...';
+            msg.innerText = "Conectando a la API en Render...";
+            msg.style.color = "#38bdf8"; // Color azul para indicar progreso
 
             try {
-                // Aquí pondrás la URL gratuita de Render o Vercel más adelante
-                // const API_URL = "https://tu-api-python.onrender.com/descargar-cv";
+                // 2. Apuntamos a la ruta EXACTA de tu API en Render
+                // Importante: Asegúrate de que tu main.py tenga la ruta /descargar-cv definida.
+                const API_URL = "https://anderson-cv-api.onrender.com/descargar-cv";
                 
-                // Simulación para prueba local
-                await new Promise(r => setTimeout(r, 2000)); 
-                msg.innerText = "¡Simulación exitosa! Aquí el navegador descargaría el PDF devuelto por Python.";
-                
-                // Lógica real que usarás:
-                /*
+                // 3. Hacemos la petición HTTP al servidor de Python
                 const response = await fetch(API_URL);
+                
+                // Verificamos que el servidor respondió con un OK (status 200)
+                if (!response.ok) {
+                    throw new Error(`Error del servidor: ${response.status}`);
+                }
+
+                // 4. Recibimos los bytes y los convertimos en un archivo descargable
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
+                
+                // 5. Truco de JS para forzar la descarga en el navegador
                 const a = document.createElement('a');
+                a.style.display = 'none';
                 a.href = url;
-                a.download = 'CV_Anderson_Moncada.pdf';
+                a.download = 'CV_Anderson_Moncada_Ingeniero.pdf';
                 document.body.appendChild(a);
                 a.click();
-                */
+                
+                // 6. Limpiamos la memoria
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                msg.innerText = "¡PDF generado y descargado con éxito! ✅";
+                msg.style.color = "#4ade80"; // Verde de éxito
+
             } catch (error) {
-                msg.innerText = "Error al conectar con la API.";
+                console.error("Error en la descarga:", error);
+                msg.innerText = "Error: El servidor no respondió o está inactivo. Intenta de nuevo.";
+                msg.style.color = "#f87171"; // Rojo de error
             } finally {
+                // 7. Restauramos el botón a su estado original
                 btn.disabled = false;
                 btn.innerHTML = '📥 Generar y Descargar PDF';
             }
         }
-    </script>
 </body>
 </html>
