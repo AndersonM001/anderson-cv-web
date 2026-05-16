@@ -213,7 +213,7 @@ function renderPortfolioData() {
 }
 
 // ========================================================
-// TELEMETRÍA 3D GLOBE.GL CON FRONTERAS Y PUNTOS WEBGL NATIVOS
+// TELEMETRÍA 3D GLOBE.GL MODO MATRIZ DE RED (RADAR RINGS)
 // ========================================================
 async function iniciarTelemetria3D() {
     const telemetryContainer = document.getElementById('telemetry-data');
@@ -233,46 +233,43 @@ async function iniciarTelemetria3D() {
             <div style="margin-top: 15px; color: #f59e0b; font-size: 0.85rem;" class="blink">>>> Monitoreo SOC Multi-usuario Activo</div>
         `;
 
-        // 1. Inicializar el Globo con estilo de red e infraestructura segura
+        // INSTANCIAR GLOBO MODO MATRIZ HOLOGRÁFICA (Legibilidad total)
         const world = Globe()(globeContainer)
-            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
+            // Usamos una textura de topología de red en cuadrícula limpia
+            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-water.png') 
             .backgroundColor('#0f172a')
             .width(300)
             .height(300)
             .showAtmosphere(true)
-            .atmosphereColor('#1e1b4b') // Atmósfera tenue azul oscuro para no sobrecargar
+            .atmosphereColor('#38bdf8') // Halo azul neón
             
-            // CONFIGURACIÓN DE PUNTOS NATIVOS 3D (Blindaje contra desaparición de marcadores)
-            .pointColor(d => d.isMe ? '#10b981' : '#38bdf8')
-            .pointAltitude(0.07) // Eleva el punto flotando sutilmente sobre el mapa
-            .pointRadius(0.4)    // Grosor del punto
-            .pointsMerge(true);
+            // CONFIGURACIÓN DE LOS ANILLOS DE RADAR EN LUGAR DE TUBOS
+            .ringColor(d => d.isMe ? '#10b981' : '#38bdf8') // Verde para ti, azul los demás
+            .ringMaxRadius(3.5) // Qué tanto se expande el pulso de radar
+            .ringPropagationSpeed(2) // Velocidad de la onda
+            .ringRepeatPeriod(800); // Frecuencia del ping en milisegundos
 
         world.controls().autoRotate = true;
-        world.controls().autoRotateSpeed = 2.0;
+        world.controls().autoRotateSpeed = 1.8;
         world.pointOfView({ altitude: 2.3 });
 
-        // 2. DELIMITACIÓN DE PAÍSES (Efecto frontera de red traslúcida)
-        fetch('//unpkg.com/three-globe/example/data/ne_110m_admin_0_countries.geojson')
-            .then(res => res.json())
-            .then(countries => {
-                world.polygonsData(countries.features)
-                    .polygonCapMaterial(new THREE.MeshBasicMaterial({ color: '#0f172a', opacity: 0.1, transparent: true })) // Fondo del país casi invisible
-                    .polygonSideColor(() => 'rgba(56, 189, 248, 0.25)') // Línea de la frontera neón cian delgada
-                    .polygonStrokeColor(() => 'rgba(56, 189, 248, 0.4)');
-            }).catch(err => console.log("Aviso: No se pudieron mapear las fronteras vectoriales vectoriales", err));
+        // Ajustar color de los mares y continentes para que parezca una terminal vectorial
+        const globeMaterial = world.globeMaterial();
+        globeMaterial.color = new THREE.Color('#020617'); // Continentes oscuros
+        globeMaterial.emissive = new THREE.Color('#1e293b'); // Relieve nítido
+        globeMaterial.emissiveIntensity = 0.5;
 
-        // Función adaptadora para formatear la estructura que le gusta a WebGL
-        function updateWebGlPoints(usersList) {
-            const formattedPoints = usersList.map(user => ({
+        // Función para inyectar la data en la capa de anillos concéntricos
+        function updateRadarRings(usersList) {
+            const formattedRings = usersList.map(user => ({
                 lat: parseFloat(user.lat),
                 lng: parseFloat(user.lon),
                 isMe: user.ip_anonymized === myData.ip_anonymized
             }));
-            world.pointsData(formattedPoints);
+            world.ringsData(formattedRings);
         }
 
-        // 3. ESCUCHA ACTIVA DE FIREBASE FIRESTORE MULTI-USUARIO
+        // ESCUCHA FIREBASE TIEMPO REAL MULTI-USUARIO
         if (typeof firebase !== 'undefined' && dbFS) {
             dbFS.collection("active_users").onSnapshot((snapshot) => {
                 const activeUsers = [];
@@ -284,22 +281,22 @@ async function iniciarTelemetria3D() {
                 });
                 
                 if (activeUsers.length === 0) activeUsers.push(myData);
-                updateWebGlPoints(activeUsers);
+                updateRadarRings(activeUsers);
             }, error => {
                 console.warn("Firestore fallback activado:", error);
-                updateWebGlPoints([myData]);
+                updateRadarRings([myData]);
             });
         } else {
-            updateWebGlPoints([myData]);
+            updateRadarRings([myData]);
         }
 
-        // 4. Enfoque dinámico y fijación de objetivo en Zipaquira
+        // Acercamiento controlado al origen del pulso
         setTimeout(() => {
             world.controls().autoRotate = false;
             world.pointOfView({ 
                 lat: myData.lat, 
                 lng: myData.lon, 
-                altitude: 0.5 
+                altitude: 0.55 // Altura ideal para apreciar las ondas expansivas en el mapa
             }, 2500);
         }, 3500);
 
