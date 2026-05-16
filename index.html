@@ -45,7 +45,7 @@
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #0ea5e9, #38bdf8);
-            width: 0; /* Inicia en 0 para la animación */
+            width: 0; 
             animation: fillBars 2s ease-out forwards;
         }
         
@@ -59,7 +59,7 @@
         .btn:disabled { background-color: #475569; cursor: not-allowed; transform: none; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fillBars { to { width: var(--w); } } /* Usa una variable CSS para el ancho final */
+        @keyframes fillBars { to { width: var(--w); } } 
     </style>
 </head>
 <body>
@@ -104,11 +104,12 @@
             <button id="downloadBtn" class="btn" onclick="descargarCV()">
                 📥 Generar y Descargar PDF
             </button>
-            <p id="statusMsg" style="margin-top: 10px; color: #94a3b8; font-size: 0.9rem;"></p>
+            <p id="statusMsg" style="margin-top: 10px; font-size: 0.9rem; font-weight: bold;"></p>
         </section>
     </div>
 
-    async function descargarCV() {
+    <script>
+        async function descargarCV() {
             const btn = document.getElementById('downloadBtn');
             const msg = document.getElementById('statusMsg');
             
@@ -116,26 +117,24 @@
             btn.disabled = true;
             btn.innerHTML = '⏳ Procesando en el servidor...';
             msg.innerText = "Conectando a la API en Render...";
-            msg.style.color = "#38bdf8"; // Color azul para indicar progreso
+            msg.style.color = "#38bdf8"; // Azul
 
             try {
-                // 2. Apuntamos a la ruta EXACTA de tu API en Render
-                // Importante: Asegúrate de que tu main.py tenga la ruta /descargar-cv definida.
+                // 2. Apuntamos a tu API en Render
                 const API_URL = "https://anderson-cv-api.onrender.com/descargar-cv";
                 
-                // 3. Hacemos la petición HTTP al servidor de Python
+                // 3. Hacemos la petición HTTP
                 const response = await fetch(API_URL);
                 
-                // Verificamos que el servidor respondió con un OK (status 200)
                 if (!response.ok) {
                     throw new Error(`Error del servidor: ${response.status}`);
                 }
 
-                // 4. Recibimos los bytes y los convertimos en un archivo descargable
+                // 4. Recibimos los bytes
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 
-                // 5. Truco de JS para forzar la descarga en el navegador
+                // 5. Forzar la descarga
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
@@ -143,22 +142,23 @@
                 document.body.appendChild(a);
                 a.click();
                 
-                // 6. Limpiamos la memoria
+                // 6. Limpiar memoria
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
                 
                 msg.innerText = "¡PDF generado y descargado con éxito! ✅";
-                msg.style.color = "#4ade80"; // Verde de éxito
+                msg.style.color = "#4ade80"; // Verde
 
             } catch (error) {
                 console.error("Error en la descarga:", error);
-                msg.innerText = "Error: El servidor no respondió o está inactivo. Intenta de nuevo.";
-                msg.style.color = "#f87171"; // Rojo de error
+                msg.innerText = "Error: El servidor de Render está iniciando (Cold Start) o hubo un problema. Intenta en 30 segundos.";
+                msg.style.color = "#f87171"; // Rojo
             } finally {
-                // 7. Restauramos el botón a su estado original
+                // 7. Restaurar botón
                 btn.disabled = false;
                 btn.innerHTML = '📥 Generar y Descargar PDF';
             }
         }
+    </script>
 </body>
 </html>
