@@ -213,7 +213,7 @@ function renderPortfolioData() {
 }
 
 // ========================================================
-// TELEMETRÍA 3D GLOBE.GL MODO MATRIZ DE RED (RADAR RINGS)
+// TELEMETRÍA 3D MODO RADAR SOC (ESTILO COMBAT MAP)
 // ========================================================
 async function iniciarTelemetria3D() {
     const telemetryContainer = document.getElementById('telemetry-data');
@@ -233,33 +233,27 @@ async function iniciarTelemetria3D() {
             <div style="margin-top: 15px; color: #f59e0b; font-size: 0.85rem;" class="blink">>>> Monitoreo SOC Multi-usuario Activo</div>
         `;
 
-        // INSTANCIAR GLOBO MODO MATRIZ HOLOGRÁFICA (Legibilidad total)
+        // INSTANCIAR GLOBO MODO RADAR AZUL (Legibilidad Premium y Cero Errores)
         const world = Globe()(globeContainer)
-            // Usamos una textura de topología de red en cuadrícula limpia
-            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-water.png') 
+            // Cambiamos a la textura de relieve azul oscuro unificado, ultra nítida y limpia
+            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg') 
             .backgroundColor('#0f172a')
             .width(300)
             .height(300)
             .showAtmosphere(true)
-            .atmosphereColor('#38bdf8') // Halo azul neón
+            .atmosphereColor('#0ea5e9') // Halo cian/azul eléctrico de atmósfera
             
-            // CONFIGURACIÓN DE LOS ANILLOS DE RADAR EN LUGAR DE TUBOS
-            .ringColor(d => d.isMe ? '#10b981' : '#38bdf8') // Verde para ti, azul los demás
-            .ringMaxRadius(3.5) // Qué tanto se expande el pulso de radar
-            .ringPropagationSpeed(2) // Velocidad de la onda
-            .ringRepeatPeriod(800); // Frecuencia del ping en milisegundos
+            // CONFIGURACIÓN DE LOS ANILLOS DE RADAR (Pings planos de sonar)
+            .ringColor(d => d.isMe ? '#10b981' : '#38bdf8') // Verde tú, azul otros visitantes
+            .ringMaxRadius(4) 
+            .ringPropagationSpeed(2.5) 
+            .ringRepeatPeriod(700); 
 
         world.controls().autoRotate = true;
-        world.controls().autoRotateSpeed = 1.8;
-        world.pointOfView({ altitude: 2.3 });
+        world.controls().autoRotateSpeed = 1.5; // Rotación suave y elegante
+        world.pointOfView({ altitude: 2.2 });
 
-        // Ajustar color de los mares y continentes para que parezca una terminal vectorial
-        const globeMaterial = world.globeMaterial();
-        globeMaterial.color = new THREE.Color('#020617'); // Continentes oscuros
-        globeMaterial.emissive = new THREE.Color('#1e293b'); // Relieve nítido
-        globeMaterial.emissiveIntensity = 0.5;
-
-        // Función para inyectar la data en la capa de anillos concéntricos
+        // Función para actualizar las ondas expansivas del sonar
         function updateRadarRings(usersList) {
             const formattedRings = usersList.map(user => ({
                 lat: parseFloat(user.lat),
@@ -283,20 +277,20 @@ async function iniciarTelemetria3D() {
                 if (activeUsers.length === 0) activeUsers.push(myData);
                 updateRadarRings(activeUsers);
             }, error => {
-                console.warn("Firestore fallback activado:", error);
+                console.warn("Firestore fallback:", error);
                 updateRadarRings([myData]);
             });
         } else {
             updateRadarRings([myData]);
         }
 
-        // Acercamiento controlado al origen del pulso
+        // Zoom In dinámico hacia Zipaquirá
         setTimeout(() => {
             world.controls().autoRotate = false;
             world.pointOfView({ 
                 lat: myData.lat, 
                 lng: myData.lon, 
-                altitude: 0.55 // Altura ideal para apreciar las ondas expansivas en el mapa
+                altitude: 0.52 // Altura idónea para ver los círculos expandirse con total nitidez
             }, 2500);
         }, 3500);
 
