@@ -1,3 +1,21 @@
+:root {
+    --bg-color: #020617;
+    --text-color: #cbd5e1;
+    --accent-blue: #38bdf8;
+    --accent-green: #10b981;
+    --card-bg: #0f172a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
 /* ========================================================
    PANTALLA DE CARGA IA: HOLD TO AUTHORIZE
    ======================================================== */
@@ -16,11 +34,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: rgba(15, 23, 42, 0.4);
+    background: rgba(15, 23, 42, 0.7);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 50px;
+    padding: 50px 30px;
     border-radius: 24px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     width: 90%;
@@ -30,61 +48,108 @@
 .ai-header { text-align: center; margin-bottom: 40px; }
 .ai-header h2 { 
     color: #f8fafc; font-size: 1.4rem; letter-spacing: 2px; 
-    margin-bottom: 8px; font-weight: 600;
+    margin-bottom: 8px; font-weight: 600; text-shadow: 0 0 10px rgba(255,255,255,0.2);
 }
-.ai-header p { color: #64748b; font-size: 0.9rem; }
+.ai-header p { color: #94a3b8; font-size: 0.9rem; }
 
-/* El Wrapper del Botón y el Anillo */
+/* El Wrapper Mágico que centra el botón y el anillo */
 .ai-core-wrapper {
     position: relative;
-    width: 160px; height: 160px;
+    width: 180px; height: 180px;
     display: flex; align-items: center; justify-content: center;
-    margin-bottom: 40px;
+    margin-bottom: 30px;
 }
 
-.progress-ring { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+.progress-ring { 
+    position: absolute; 
+    top: 0; left: 0; 
+    transform: rotate(-90deg); 
+    pointer-events: none; /* Evita que robe el click al botón */
+}
+
 .progress-ring__circle {
-    stroke-dasharray: 465; /* Circunferencia de r=74 */
-    stroke-dashoffset: 465;
+    stroke-dasharray: 528; /* Circunferencia (2 * PI * 84) */
+    stroke-dashoffset: 528;
     transition: stroke-dashoffset 0.1s linear;
     stroke-linecap: round;
     filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.6));
 }
 
 .auth-button {
-    width: 130px; height: 130px;
+    width: 140px; height: 140px;
     border-radius: 50%;
     border: none;
     background: linear-gradient(145deg, #1e293b, #0f172a);
     box-shadow:  10px 10px 20px #080d17, -10px -10px 20px #16213d;
     color: var(--accent-blue);
-    font-weight: 600; font-size: 0.85rem; letter-spacing: 1px;
+    font-weight: bold; font-size: 0.9rem; letter-spacing: 1px;
     cursor: pointer;
     position: relative;
     overflow: hidden;
     transition: all 0.3s ease;
     display: flex; align-items: center; justify-content: center;
     outline: none;
+    z-index: 2;
 }
 
-.auth-button:hover { box-shadow:  inset 5px 5px 10px #080d17, inset -5px -5px 10px #16213d; }
+.auth-button:hover { box-shadow:  inset 5px 5px 10px #080d17, inset -5px -5px 10px #16213d; color: #fff;}
 .auth-button:active { transform: scale(0.95); }
 
-/* El Orbe de IA que aparece al autorizar */
+/* Orbe procesando */
 .ai-orb {
-    position: absolute; top: 5%; left: 5%; width: 90%; height: 90%;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     border-radius: 50%;
     background: conic-gradient(from 0deg, transparent 0%, var(--accent-blue) 25%, transparent 50%, var(--accent-green) 75%, transparent 100%);
     opacity: 0; visibility: hidden;
-    animation: spinCore 2s linear infinite;
-    filter: blur(8px);
+    animation: spinCore 1s linear infinite;
+    filter: blur(5px);
 }
 
 .processing .auth-text { opacity: 0; }
 .processing .ai-orb { opacity: 1; visibility: visible; }
-.processing .auth-button { cursor: default; transform: scale(0.95); box-shadow: 0 0 30px rgba(56, 189, 248, 0.4); }
+.processing .auth-button { cursor: default; transform: scale(0.95); box-shadow: 0 0 30px rgba(16, 185, 129, 0.4); }
 
 .ai-status { height: 20px; text-align: center; }
-.typing-text { color: var(--accent-blue); font-family: monospace; font-size: 0.95rem; }
+.typing-text { color: var(--accent-blue); font-family: monospace; font-size: 0.95rem; text-shadow: 0 0 5px rgba(56,189,248,0.5);}
 
 @keyframes spinCore { 100% { transform: rotate(360deg); } }
+
+/* ========================================================
+   ESTILOS DEL PORTAFOLIO PRINCIPAL
+   ======================================================== */
+.main-content { display: none; padding: 40px 20px; }
+.container { max-width: 900px; margin: 0 auto; animation: fadeIn 1s ease-out; }
+
+header { text-align: center; margin-bottom: 40px; }
+header h1 { font-size: 2.5rem; color: #fff; margin-bottom: 5px; }
+header h2 { font-size: 1.25rem; color: var(--accent-blue); font-weight: normal; }
+.resumen { color: #94a3b8; margin-top: 20px; text-align: justify; background: #0f172a; padding: 20px; border-radius: 8px; border: 1px solid #1e293b; }
+
+.section-title { font-size: 1.5rem; margin: 40px 0 20px 0; border-left: 4px solid var(--accent-blue); padding-left: 15px; color: #fff; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.card { background-color: var(--card-bg); padding: 25px; border-radius: 12px; border: 1px solid #1e293b; }
+.card-title { color: var(--accent-blue); margin-bottom: 20px; font-size: 1.15rem; }
+
+.skill-container { margin-bottom: 18px; }
+.skill-name { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 6px; font-size: 0.9rem; }
+.progress-bar { background-color: #1f2937; height: 8px; border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #0284c7, var(--accent-blue)); width: 0; }
+
+.timeline-item { margin-bottom: 25px; border-bottom: 1px solid #1e293b; padding-bottom: 20px; }
+.timeline-header { display: flex; justify-content: space-between; color: var(--accent-blue); font-weight: bold; font-size: 1.05rem; }
+.timeline-company { font-style: italic; color: #64748b; font-size: 0.9rem; margin-bottom: 10px; }
+.timeline-item ul { padding-left: 20px; color: #94a3b8; font-size: 0.95rem; }
+
+.tag-container { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { background: #1e293b; color: var(--accent-blue); font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; font-family: monospace; }
+
+.download-section { text-align: center; margin: 60px 0; }
+.btn-download {
+    background-color: var(--accent-blue); color: #0f172a; border: none;
+    padding: 16px 35px; font-size: 1.1rem; font-weight: bold; border-radius: 8px;
+    cursor: pointer; transition: all 0.2s;
+}
+.btn-download:hover { background-color: #7dd3fc; transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.3); }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

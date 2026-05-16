@@ -1,23 +1,70 @@
-<div id="ai-boot-screen">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anderson Moncada | Neural Engine Portfolio</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div id="ai-boot-screen">
         <div class="ai-container">
             <div class="ai-header">
                 <h2>A.M.M.V // NEURAL ENGINE</h2>
-                <p>Verificación de seguridad requerida para acceder al perfil</p>
+                <p>Manten presionado para autorizar y desencriptar el perfil</p>
             </div>
 
             <div class="ai-core-wrapper">
-                <svg class="progress-ring" width="160" height="160">
-                    <circle class="progress-ring__bg" stroke="#1e293b" stroke-width="6" fill="transparent" r="74" cx="80" cy="80"/>
-                    <circle class="progress-ring__circle" stroke="#38bdf8" stroke-width="6" fill="transparent" r="74" cx="80" cy="80"/>
+                <svg class="progress-ring" width="180" height="180">
+                    <circle class="progress-ring__bg" stroke="#1e293b" stroke-width="6" fill="transparent" r="84" cx="90" cy="90"/>
+                    <circle class="progress-ring__circle" stroke="#38bdf8" stroke-width="6" fill="transparent" r="84" cx="90" cy="90"/>
                 </svg>
                 
                 <button id="auth-btn" class="auth-button">
                     <span class="auth-text">MANTENER<br>PULSADO</span>
-                    <div class="ai-orb"></div> </button>
+                    <div class="ai-orb"></div>
+                </button>
             </div>
 
             <div class="ai-status">
-                <p id="ai-status-text" class="typing-text">Sistema en espera...</p>
+                <p id="ai-status-text" class="typing-text">Sistema en espera. Inicie secuencia.</p>
             </div>
         </div>
     </div>
+
+    <div id="main-portfolio" class="main-content">
+        <div class="container">
+            <header>
+                <h1 id="web-nombre">Sincronizando...</h1>
+                <h2 id="web-titulo">...</h2>
+                <p id="web-resumen" class="resumen"></p>
+            </header>
+
+            <div class="grid">
+                <div class="card">
+                    <h3 class="card-title">💻 Ingeniería de Desarrollo</h3>
+                    <div id="skills-desarrollo"></div>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">🛡️ Infraestructura & Ciberseguridad</h3>
+                    <div id="skills-infra"></div>
+                </div>
+            </div>
+
+            <section>
+                <h2 class="section-title">Experiencia Profesional</h2>
+                <div id="experience-container" class="card"></div>
+            </section>
+
+            <section class="download-section">
+                <button id="downloadBtn" class="btn-download">
+                    📥 Generar y Descargar PDF Oficial
+                </button>
+            </section>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
