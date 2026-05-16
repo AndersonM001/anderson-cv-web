@@ -213,7 +213,7 @@ function renderPortfolioData() {
 }
 
 // ========================================================
-// TELEMETRÍA 3D MODO RADAR SOC (ESTILO COMBAT MAP)
+// TELEMETRÍA 3D MODO RED VECTORIAL HEXAGONAL (PUNTO PLANO)
 // ========================================================
 async function iniciarTelemetria3D() {
     const telemetryContainer = document.getElementById('telemetry-data');
@@ -233,37 +233,53 @@ async function iniciarTelemetria3D() {
             <div style="margin-top: 15px; color: #f59e0b; font-size: 0.85rem;" class="blink">>>> Monitoreo SOC Multi-usuario Activo</div>
         `;
 
-        // INSTANCIAR GLOBO MODO RADAR AZUL (Legibilidad Premium y Cero Errores)
+        // INSTANCIAR GLOBO PREMIUM VECTORIAL
         const world = Globe()(globeContainer)
-            // Cambiamos a la textura de relieve azul oscuro unificado, ultra nítida y limpia
-            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg') 
+            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg') // Fondo oscuro de contraste
             .backgroundColor('#0f172a')
             .width(300)
             .height(300)
             .showAtmosphere(true)
-            .atmosphereColor('#0ea5e9') // Halo cian/azul eléctrico de atmósfera
+            .atmosphereColor('#38bdf8')
             
-            // CONFIGURACIÓN DE LOS ANILLOS DE RADAR (Pings planos de sonar)
-            .ringColor(d => d.isMe ? '#10b981' : '#38bdf8') // Verde tú, azul otros visitantes
-            .ringMaxRadius(4) 
-            .ringPropagationSpeed(2.5) 
-            .ringRepeatPeriod(700); 
+            // CONFIGURACIÓN DEL MARCADOR: PUNTO CLÁSICO PLANO (BLINDAJE CONTRA TUBOS)
+            .pointColor(d => d.isMe ? '#10b981' : '#38bdf8') // Verde tú, azul los demás
+            .pointAltitude(0)       // ALTITUD EN 0 ELIMINA EL EFECTO DE TUBO/CILINDRO
+            .pointRadius(0.6)       // Tamaño del punto en el mapa
+            .pointsMerge(true)
+            
+            // CONFIGURACIÓN DE LA MATRIZ HEXAGONAL PARA LAS SILUETAS DEL MUNDO
+            .hexBinPointWeight('pop')
+            .hexBinResolution(3)
+            .hexMargin(0.2)
+            .hexColor(() => 'rgba(56, 189, 248, 0.15)'); // Cuadrícula cian traslúcida muy sutil
 
         world.controls().autoRotate = true;
-        world.controls().autoRotateSpeed = 1.5; // Rotación suave y elegante
+        world.controls().autoRotateSpeed = 1.5;
         world.pointOfView({ altitude: 2.2 });
 
-        // Función para actualizar las ondas expansivas del sonar
-        function updateRadarRings(usersList) {
-            const formattedRings = usersList.map(user => ({
+        // 1. CARGAR DATOS GEOGRÁFICOS PARA GENERAR LAS SILUETAS DE LOS CONTINENTES
+        fetch('//unpkg.com/three-globe/example/data/ne_110m_admin_0_countries.geojson')
+            .then(res => res.json())
+            .then(countries => {
+                // Inyectamos las fronteras vectoriales con líneas de bajo contraste
+                world.polygonsData(countries.features)
+                    .polygonCapMaterial(new THREE.MeshBasicMaterial({ color: '#090d16', opacity: 0.2, transparent: true }))
+                    .polygonSideColor(() => 'rgba(56, 189, 248, 0.12)') // Silueta de países muy fina
+                    .polygonStrokeColor(() => 'rgba(56, 189, 248, 0.25)');
+            }).catch(err => console.log("Aviso: Fallo al mapear polígonos base", err));
+
+        // Función para inyectar los puntos WebGL limpios
+        function updateWebGlPoints(usersList) {
+            const formattedPoints = usersList.map(user => ({
                 lat: parseFloat(user.lat),
                 lng: parseFloat(user.lon),
                 isMe: user.ip_anonymized === myData.ip_anonymized
             }));
-            world.ringsData(formattedRings);
+            world.pointsData(formattedPoints);
         }
 
-        // ESCUCHA FIREBASE TIEMPO REAL MULTI-USUARIO
+        // 2. ESCUCHA DE FIREBASE EN TIEMPO REAL (MULTI-USUARIO)
         if (typeof firebase !== 'undefined' && dbFS) {
             dbFS.collection("active_users").onSnapshot((snapshot) => {
                 const activeUsers = [];
@@ -275,22 +291,22 @@ async function iniciarTelemetria3D() {
                 });
                 
                 if (activeUsers.length === 0) activeUsers.push(myData);
-                updateRadarRings(activeUsers);
+                updateWebGlPoints(activeUsers);
             }, error => {
-                console.warn("Firestore fallback:", error);
-                updateRadarRings([myData]);
+                console.warn("Firestore fallback activado:", error);
+                updateWebGlPoints([myData]);
             });
         } else {
-            updateRadarRings([myData]);
+            updateWebGlPoints([myData]);
         }
 
-        // Zoom In dinámico hacia Zipaquirá
+        // 3. Zoom In coreográfico balanceado
         setTimeout(() => {
             world.controls().autoRotate = false;
             world.pointOfView({ 
                 lat: myData.lat, 
                 lng: myData.lon, 
-                altitude: 0.52 // Altura idónea para ver los círculos expandirse con total nitidez
+                altitude: 0.52 
             }, 2500);
         }, 3500);
 
