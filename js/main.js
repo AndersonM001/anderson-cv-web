@@ -6,13 +6,6 @@ let authProgress = 0;
 let authInterval;
 let isProcessing = false;
 
-// El stack de tecnologías que se mostrará rápidamente mientras mantiene pulsado
-const techStack = [
-    "Docker Engine", "Kotlin MVVM", "Python / FastAPI", 
-    "GLPI & Vaultwarden", "ISO 27001 SOC", "GPO & AD", 
-    "Firebase / Firestore", "Bash Scripting", "Linux Server"
-];
-
 document.addEventListener('DOMContentLoaded', () => {
     initHoldToUnlock();
     document.getElementById('downloadBtn').addEventListener('click', descargarCV);
@@ -22,40 +15,42 @@ function initHoldToUnlock() {
     const btn = document.getElementById('auth-btn');
     const circle = document.querySelector('.progress-ring__circle');
     const statusText = document.getElementById('ai-status-text');
+    const techMatrix = document.getElementById('tech-matrix'); // Referencia al fondo
     
-    // Cálculo de la circunferencia (2 * PI * radio 84)
     const radius = circle.r.baseVal.value;
     const circumference = radius * 2 * Math.PI;
     circle.style.strokeDasharray = `${circumference} ${circumference}`;
     circle.style.strokeDashoffset = circumference;
 
-    function setProgress(percent) {
+    function updateVisuals(percent) {
+        // 1. Llenar el anillo
         const offset = circumference - (percent / 100) * circumference;
         circle.style.strokeDashoffset = offset;
+
+        // 2. Revelar el fondo brillante (Opacidad de 0 a 1)
+        techMatrix.style.opacity = percent / 100;
+        
+        // 3. Efecto de Zoom (De 0.8 a 1.0)
+        const scale = 0.8 + (percent / 100) * 0.2;
+        techMatrix.style.transform = `scale(${scale})`;
     }
 
     function startAuth(e) {
         if (isProcessing) return;
-        if (e.type === 'mousedown' && e.button !== 0) return; // Solo clic izquierdo
+        if (e.type === 'mousedown' && e.button !== 0) return;
         
         isAuthorizing = true;
-        let techIndex = 0;
+        statusText.innerText = "Inyectando energia al sistema...";
+        statusText.style.color = "#38bdf8";
 
         clearInterval(authInterval);
         authInterval = setInterval(() => {
-            authProgress += 1.5; // Velocidad de llenado
-            setProgress(authProgress);
-
-            // Cambiar el texto de tecnología cada cierto avance para crear el efecto "Hackeo"
-            if (Math.floor(authProgress) % 8 === 0) {
-                statusText.innerText = `Extrayendo nodo: [ ${techStack[techIndex % techStack.length]} ]...`;
-                statusText.style.color = "#38bdf8";
-                techIndex++;
-            }
+            authProgress += 1.5; // Velocidad
+            updateVisuals(authProgress);
 
             if (authProgress >= 100) {
                 clearInterval(authInterval);
-                executeAISequence(); // ¡Lleno! Pasa a la siguiente fase
+                executeAISequence();
             }
         }, 30);
     }
@@ -65,16 +60,16 @@ function initHoldToUnlock() {
         isAuthorizing = false;
         clearInterval(authInterval);
         
-        // Vacía la barra suavemente si el usuario suelta antes de tiempo
+        // Apagar las luces suavemente si suelta
         authInterval = setInterval(() => {
             authProgress -= 3;
             if (authProgress <= 0) {
                 authProgress = 0;
                 clearInterval(authInterval);
-                statusText.innerText = "Autorización abortada. Mantenga pulsado.";
+                statusText.innerText = "Autorización interrumpida. Mantenga pulsado.";
                 statusText.style.color = "#94a3b8";
             }
-            setProgress(authProgress);
+            updateVisuals(authProgress);
         }, 20);
     }
 
@@ -89,11 +84,16 @@ async function executeAISequence() {
     const btn = document.getElementById('auth-btn');
     const statusText = document.getElementById('ai-status-text');
     const circle = document.querySelector('.progress-ring__circle');
+    const techMatrix = document.getElementById('tech-matrix');
 
-    // Cambia al modo procesamiento verde
     btn.classList.add('processing');
     circle.style.stroke = "#10b981"; 
-    statusText.innerText = "Verificación completada. Enlazando Servidor...";
+    
+    // Destello de las palabras al completar
+    techMatrix.style.color = "#10b981";
+    techMatrix.style.textShadow = "0 0 25px #10b981";
+    
+    statusText.innerText = "Desencriptación completa. Enlazando API...";
     statusText.style.color = "#10b981";
 
     try {
@@ -107,7 +107,7 @@ async function executeAISequence() {
         const [_, data] = await Promise.all([minAnimTime, fetchPromise]);
         
         apiData = data;
-        statusText.innerText = "Conexión estable. Abriendo portafolio...";
+        statusText.innerText = "Acceso concedido.";
         
         renderPortfolioData();
 
