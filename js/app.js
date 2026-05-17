@@ -186,10 +186,10 @@ window.iniciarTelemetria3D = async function() {
         world.controls().autoRotate = true; 
         world.controls().autoRotateSpeed = 1.5;
         
-        // FIX DE CORRECCIÓN DE CORS: Carga síncrona del archivo local en lugar de llamadas externas redirigidas
-        fetch('./assets/data/custom_countries.geojson')
+        // CORRECCIÓN ABSOLUTA: Apuntar directamente a la URL de producción de GitHub Pages
+        fetch('https://andersonm001.github.io/anderson-cv-web/assets/data/custom_countries.geojson')
             .then(r => {
-                if (!r.ok) throw new Error("No se pudo mapear la telemetria vectorial local");
+                if (!r.ok) throw new Error("Código de estado HTTP erróneo al recuperar GeoJSON");
                 return r.json();
             })
             .then(countries => { 
@@ -197,7 +197,8 @@ window.iniciarTelemetria3D = async function() {
                      .polygonCapColor(() => 'rgba(15, 23, 42, 0.6)')
                      .polygonSideColor(() => 'rgba(56, 189, 248, 0.15)') 
                      .polygonStrokeColor(() => 'rgba(56, 189, 248, 0.4)'); 
-            }).catch(e => console.error("Error cargando polígonos locales GeoJSON: ", e));
+            })
+            .catch(e => console.error(">>> [ERR] Error en el pipeline geográfico local: ", e));
             
         function updateWebGlPoints(uList) { 
             world.pointsData(uList.map(u => ({ lat: parseFloat(u.lat), lng: parseFloat(u.lon), isMe: u.ip_anonymized === myData.ip_anonymized }))); 
