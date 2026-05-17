@@ -39,10 +39,10 @@ function startProfileCarousel() {
 window.fetchPortfolioData = async function() { 
     try {
         const res = await fetch(`${BASE_URL}/api/cv-data`); 
-        if (!res.ok) throw new Error("Fallo de comunicación con Render API"); 
+        if (!res.ok) throw new Error("Fallo de comunicacion con Render API"); 
         apiData = await res.json(); 
         
-        // Inyectar la foto remota de GitHub/Cloud al pool del carousel si está disponible en Firestore
+        // Inyectar la foto remota de GitHub/Cloud al pool del carousel si esta disponible en Firestore
         if (apiData.info_personal && apiData.info_personal.url_foto) {
             profileImages[0] = apiData.info_personal.url_foto;
         }
@@ -105,6 +105,35 @@ function renderPortfolioData() {
             card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
         });
     });
+
+    // Renderizado dinámico de la formación académica en la interfaz web
+    const eduContainer = document.getElementById('education-container');
+    if (eduContainer && apiData.estudios) {
+        eduContainer.innerHTML = '';
+        apiData.estudios.forEach(edu => {
+            eduContainer.innerHTML += `
+                <div class="timeline-item" style="margin-bottom: 12px; border-left: 2px solid #38bdf8; padding-left: 12px;">
+                    <div class="timeline-header" style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; color: #ffffff;">
+                        <span>${edu.titulo}</span>
+                        <span style="color: #38bdf8;">${edu.año}</span>
+                    </div>
+                    <div class="timeline-company" style="color: #94a3b8; font-size: 13px; margin-top: 2px;">${edu.institucion}</div>
+                </div>`;
+        });
+    }
+
+    // Renderizado dinámico de Certificaciones y Diplomados desde Cloud Firestore
+    const certContainer = document.getElementById('certifications-container');
+    if (certContainer && apiData.certificaciones) {
+        certContainer.innerHTML = '';
+        apiData.certificaciones.forEach(cert => {
+            certContainer.innerHTML += `
+                <div class="certification-item" style="margin-bottom: 10px; display: flex; align-items: center; font-size: 13.5px; color: #e2e8f0;">
+                    <span style="color: #38bdf8; margin-right: 10px;">✔</span>
+                    <span>${cert}</span>
+                </div>`;
+        });
+    }
 }
 
 // --------------------------------------------------------
@@ -157,15 +186,18 @@ window.iniciarTelemetria3D = async function() {
         world.controls().autoRotate = true; 
         world.controls().autoRotateSpeed = 1.5;
         
-        // Parcheo del endpoint para GeoJSON directo de NaturalEarth libre de CORS redirects
-        fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson')
-            .then(r => r.json())
+        // FIX DE CORRECCIÓN DE CORS: Carga síncrona del archivo local en lugar de llamadas externas redirigidas
+        fetch('./assets/data/custom_countries.geojson')
+            .then(r => {
+                if (!r.ok) throw new Error("No se pudo mapear la telemetria vectorial local");
+                return r.json();
+            })
             .then(countries => { 
                 world.polygonsData(countries.features)
                      .polygonCapColor(() => 'rgba(15, 23, 42, 0.6)')
                      .polygonSideColor(() => 'rgba(56, 189, 248, 0.15)') 
                      .polygonStrokeColor(() => 'rgba(56, 189, 248, 0.4)'); 
-            }).catch(e => console.error("Error cargando polígonos: ", e));
+            }).catch(e => console.error("Error cargando polígonos locales GeoJSON: ", e));
             
         function updateWebGlPoints(uList) { 
             world.pointsData(uList.map(u => ({ lat: parseFloat(u.lat), lng: parseFloat(u.lon), isMe: u.ip_anonymized === myData.ip_anonymized }))); 
@@ -186,7 +218,7 @@ window.iniciarTelemetria3D = async function() {
         }
         
         setTimeout(() => { 
-            world.controls().autoRotate = false; 
+            if(world.controls()) world.controls().autoRotate = false; 
             world.pointOfView({ lat: myData.lat, lng: myData.lon, altitude: 0.6 }, 2500); 
         }, 3500);
     } catch (e) { 
@@ -237,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
             phraseIndex++; 
             tTip.classList.add('show'); 
             
-            // Mitigación del bloqueo de audio: Solo suena si el contexto no está suspendido
             if(window.playTone) {
                 try { window.playTone(900, 'sine', 0.05, 0.01); } catch(audioErr){}
             }
@@ -247,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (tOrb && cWin) {
         tOrb.addEventListener('click', () => { 
-            if(window.playTone) window.playTone(600,'sine',0.1,0.02); 
+            try { if(window.playTone) window.playTone(600,'sine',0.1,0.02); } catch(e){}
             cWin.style.display = 'flex'; 
             tOrb.style.display = 'none'; 
             if(tTip) tTip.classList.remove('show'); 
@@ -258,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (cBtn && tOrb && cWin) {
         cBtn.addEventListener('click', () => { 
-            if(window.playTone) window.playTone(400,'sine',0.1,0.02); 
+            try { if(window.playTone) window.playTone(400,'sine',0.1,0.02); } catch(e){}
             cWin.style.display = 'none'; 
             tOrb.style.display = 'flex'; 
         });
@@ -287,7 +318,7 @@ async function procesarPreguntaIA(e) {
     const msg = inputF.value.trim(); 
     if (!msg) return;
     
-    if(window.playTone) window.playTone(800, 'square', 0.05, 0.02); 
+    try { if(window.playTone) window.playTone(800, 'square', 0.05, 0.02); } catch(e){}
     inputF.disabled = true; 
     sendB.disabled = true; 
     inputF.value = "";
@@ -300,7 +331,9 @@ async function procesarPreguntaIA(e) {
     logs.scrollTop = logs.scrollHeight;
     
     let typingInterval = null; 
-    if(window.playTone) typingInterval = setInterval(()=> window.playTone(600, 'triangle', 0.02, 0.01), 100);
+    if(window.playTone) {
+        try { typingInterval = setInterval(()=> window.playTone(600, 'triangle', 0.02, 0.01), 100); } catch(e){}
+    }
     
     try {
         const r = await fetch(`${BASE_URL}/api/chat`, { 
@@ -314,7 +347,7 @@ async function procesarPreguntaIA(e) {
             const loadEl = document.getElementById(lId);
             if(loadEl) loadEl.remove();
             logs.innerHTML += `<div class="msg-ai"><span class="bot-tag">[ Jarvis ]:</span> Mis núcleos de procesamiento han alcanzado el límite diario de consultas. 🔋<br><br>Por favor, regresa mañana para continuar la charla.</div>`;
-            if(window.playTone) window.playTone(200, 'sawtooth', 0.5, 0.1);
+            try { if(window.playTone) window.playTone(200, 'sawtooth', 0.5, 0.1); } catch(e){}
             inputF.disabled = false; sendB.disabled = false; 
             return;
         }
@@ -327,7 +360,7 @@ async function procesarPreguntaIA(e) {
         if(loadEl) loadEl.remove();
         
         logs.innerHTML += `<div class="msg-ai"><span class="bot-tag">[ Jarvis ]:</span> ${d.response}</div>`; 
-        if(window.playTone) window.playTone(1000, 'sine', 0.1, 0.02); 
+        try { if(window.playTone) window.playTone(1000, 'sine', 0.1, 0.02); } catch(e){}
         setTimeout(() => { if(logs.lastElementChild) logs.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
     } catch (err) { 
         if(typingInterval) clearInterval(typingInterval); 
@@ -411,7 +444,7 @@ window.addEventListener('keydown', (e) => {
     if (keyBuffer.includes('sudo') || keyBuffer.includes('admin')) {
         e.preventDefault(); 
         keyBuffer = ''; 
-        if(window.playTone) window.playTone(1500, 'sawtooth', 0.5, 0.1);
+        try { if(window.playTone) window.playTone(1500, 'sawtooth', 0.5, 0.1); } catch(e){}
         
         if(termInput) termInput.value = ''; 
         if(terminal) {
@@ -470,8 +503,8 @@ function procesarComandoTerminal() {
         case 'help': 
             printTerminal("=== [ COMANDOS DE SISTEMA & CV ] ===", "#38bdf8");
             printTerminal("download_cv : Descarga la hoja de vida oficial en PDF");
-            printTerminal("skills      : Muestra el nivel técnico del perfil");
-            printTerminal("contact     : Muestra los protocolos de comunicación");
+            printTerminal("skills      : Muestra el nivel técnico de mi perfil desde Cloud");
+            printTerminal("contact     : Muestra los protocolos oficiales de comunicación");
             printTerminal("neofetch    : Resumen del sistema AndersonOS");
             printTerminal("ping        : Prueba de latencia con servidor Backend API");
             printTerminal("whoami      : Muestra el usuario actual");
@@ -543,7 +576,7 @@ function procesarComandoTerminal() {
             printTerminal("=== SOC CASINO ===", "#38bdf8");
             printTerminal(`[ ${r1} | ${r2} | ${r3} ]`, "#fff");
             if(r1 === r2 && r2 === r3) {
-                if(window.playTone) window.playTone(1000, 'square', 0.5, 0.1);
+                try { if(window.playTone) window.playTone(1000, 'square', 0.5, 0.1); } catch(e){}
                 printTerminal("¡JACKPOT! Has ganado el respeto del servidor.", "#10b981");
             } else { printTerminal("Sigue intentando...", "#ef4444"); }
             break;
@@ -563,12 +596,37 @@ function procesarComandoTerminal() {
             const dBtn = document.getElementById('downloadBtn');
             if(dBtn) dBtn.click(); 
             break;
-        case 'skills': printTerminal("[ KOTLIN ] ■■■■■■■■■□ 90%"); printTerminal("[ PYTHON ] ■■■■■■■■□□ 85%"); printTerminal("[ DOCKER ] ■■■■■■■■■□ 88%"); printTerminal("[ IS0 27k] ■■■■■■■■□□ 85%"); break;
-        case 'contact': printTerminal("=== PROTOCOLOS DE COMUNICACIÓN ===", "#38bdf8"); printTerminal("LinkedIn : linkedin.com/in/andersonmoncada"); printTerminal("Email    : anderson.mmoncada@gmail.com"); break;
+            
+        case 'skills': 
+            printTerminal("=== MATRIZ DE SKILLS (REAL-TIME CLOUD) ===", "#38bdf8");
+            if (apiData && apiData.skills) {
+                apiData.skills.forEach(s => {
+                    const totalBlocks = 10;
+                    const activeBlocks = Math.round((s.percentage / 100) * totalBlocks);
+                    const barStr = "■".repeat(activeBlocks) + "□".repeat(totalBlocks - activeBlocks);
+                    printTerminal(`[ ${s.name.padEnd(30, ' ')} ] ${barStr} ${s.percentage}%`);
+                });
+            } else {
+                printTerminal("[ KOTLIN ] ■■■■■■■■■□ 90%"); printTerminal("[ PYTHON ] ■■■■■■■■□□ 85%"); printTerminal("[ DOCKER ] ■■■■■■■■■□ 88%"); printTerminal("[ IS0 27k] ■■■■■■■■□□ 85%"); 
+            }
+            break;
+            
+        case 'contact': 
+            printTerminal("=== PROTOCOLOS DE COMUNICACIÓN ===", "#38bdf8"); 
+            if (apiData && apiData.info_personal && apiData.links_oficiales) {
+                printTerminal(`Email    : ${apiData.info_personal.email}`);
+                printTerminal(`Celular  : ${apiData.info_personal.telefono}`);
+                printTerminal(`LinkedIn : ${apiData.links_oficiales.linkedin}`);
+                printTerminal(`GitHub   : ${apiData.links_oficiales.github}`);
+            } else {
+                printTerminal("LinkedIn : linkedin.com/in/andersonmoncada"); printTerminal("Email    : anderson.mmoncada@gmail.com");
+            }
+            break;
+            
         case 'date': printTerminal(new Date().toString(), "#38bdf8"); break;
-        case 'whoami': printTerminal("Anderson Moncada. Ingeniero DevOps & Ciberseguridad. Nivel de acceso: ROOT."); break;
-        case 'neofetch': printTerminal(`<pre style="line-height:1.2;">\n   .---.      <span style="color:#fff">OS:</span> AndersonOS v3.1 (DevOps)\n  /     \\     <span style="color:#fff">Kernel:</span> 5.15.0-security\n  \\.@-@./     <span style="color:#fff">Uptime:</span> 24/7\n  /\`\\_/\`\\     <span style="color:#fff">Packages:</span> 1337 (dpkg)\n //  _  \\\\    <span style="color:#fff">Shell:</span> zsh 5.8\n| \\     )|_   <span style="color:#fff">Resolution:</span> 1920x1080\n/\`\\_\`>  <_\/ \\ <span style="color:#fff">CPU:</span> Neural Engine Core\n\\__/'---'\\__/ <span style="color:#fff">Memory:</span> 32GB / 64GB\n            </pre>`, "#38bdf8", true); break;
-        case 'clear': if(termOutput) termOutput.innerHTML = '<div>Anderson OS v1.0.0 (tty1)</div><div>Ejecuta \'help\' para ver comandos.</div>'; break;
+        case 'whoami': printTerminal(`${apiData?.info_personal?.nombre || "Anderson Moncada"}. Ingeniero DevOps & Ciberseguridad. Nivel de acceso: ROOT.`); break;
+        case 'neofetch': printTerminal(`<pre style="line-height:1.2;">\n   .---.      <span style="color:#fff">OS:</span> AndersonOS v4.0 (Cloud Native)\n  /     \\     <span style="color:#fff">Kernel:</span> 6.1.0-security-soc\n  \\.@-@./     <span style="color:#fff">Uptime:</span> 24/7\n  /\`\\_/\`\\     <span style="color:#fff">Packages:</span> 1337 (firestore-linked)\n //  _  \\\\    <span style="color:#fff">Shell:</span> zsh 5.9\n| \\     )|_   <span style="color:#fff">Resolution:</span> 1920x1080\n/\`\\_\`>  <_\/ \\ <span style="color:#fff">CPU:</span> Neural Engine Core Pool\n\\__/'---'\\__/ <span style="color:#fff">Memory:</span> 32GB / 64GB\n            </pre>`, "#38bdf8", true); break;
+        case 'clear': if(termOutput) termOutput.innerHTML = '<div>Anderson OS v4.0.0 (tty1)</div><div>Ejecuta \'help\' para ver comandos.</div>'; break;
         case 'exit': if(terminal) { terminal.style.opacity = '0'; setTimeout(() => { terminal.style.display = 'none'; }, 300); } break;
         case 'ping': printTerminal("Haciendo ping a Render API..."); const startT = performance.now(); fetch(`${BASE_URL}/`).then(() => { const lat = Math.round(performance.now() - startT); printTerminal(`64 bytes from API: icmp_seq=1 time=${lat}ms`); pingServer(); }).catch(() => { printTerminal(`Destination Host Unreachable`, "#ef4444"); }); break;
         
@@ -582,17 +640,17 @@ function procesarComandoTerminal() {
 function playGuess(cmd) {
     const num = parseInt(cmd); if (isNaN(num)) { printTerminal("Ingresa un número válido.", "#ef4444"); return; }
     gameAttempts--;
-    if (num === gameTarget) { if(window.playTone) window.playTone(800, 'square', 0.2, 0.1); printTerminal(`¡CORRECTO! El número era ${gameTarget}.`, "#10b981"); terminalState = 'cmd'; } 
-    else if (gameAttempts <= 0) { if(window.playTone) window.playTone(200, 'sawtooth', 0.5, 0.1); printTerminal(`¡BLOQUEADO! Te quedaste sin intentos. Era ${gameTarget}.`, "#ef4444"); terminalState = 'cmd'; } 
+    if (num === gameTarget) { try { if(window.playTone) window.playTone(800, 'square', 0.2, 0.1); } catch(e){} printTerminal(`¡CORRECTO! El número era ${gameTarget}.`, "#10b981"); terminalState = 'cmd'; } 
+    else if (gameAttempts <= 0) { try { if(window.playTone) window.playTone(200, 'sawtooth', 0.5, 0.1); } catch(e){} printTerminal(`¡BLOQUEADO! Te quedaste sin intentos. Era ${gameTarget}.`, "#ef4444"); terminalState = 'cmd'; } 
     else if (num < gameTarget) { printTerminal(`Más alto... (Intentos: ${gameAttempts})`, "#f59e0b"); } 
     else { printTerminal(`Más bajo... (Intentos: ${gameAttempts})`, "#f59e0b"); }
 }
 
 function playHack(cmd) {
     cmd = cmd.toUpperCase();
-    if(cmd === gameTarget) { if(window.playTone) window.playTone(800, 'square', 0.3, 0.1); printTerminal("¡CONTRASEÑA ACEPTADA!", "#10b981"); terminalState = 'cmd'; return; }
+    if(cmd === gameTarget) { try { if(window.playTone) window.playTone(800, 'square', 0.3, 0.1); } catch(e){} printTerminal("¡CONTRASEÑA ACEPTADA!", "#10b981"); terminalState = 'cmd'; return; }
     gameAttempts--;
-    if(gameAttempts <= 0) { if(window.playTone) window.playTone(200, 'sawtooth', 0.5, 0.1); printTerminal(`BLOQUEO. La correcta era ${gameTarget}.`, "#ef4444"); terminalState = 'cmd'; return; }
+    if(gameAttempts <= 0) { try { if(window.playTone) window.playTone(200, 'sawtooth', 0.5, 0.1); } catch(e){} printTerminal(`BLOQUEO. La correcta era ${gameTarget}.`, "#ef4444"); terminalState = 'cmd'; return; }
     let matches = 0; for(let i=0; i < Math.min(cmd.length, gameTarget.length); i++) { if(cmd[i] === gameTarget[i]) matches++; }
     printTerminal(`Denegada. Coincidencias: ${matches}/${gameTarget.length}. Intentos: ${gameAttempts}`, "#f59e0b");
 }
@@ -601,17 +659,17 @@ function playRPS(cmd) {
     const valid = ['piedra', 'papel', 'tijera']; if (!valid.includes(cmd)) { printTerminal("Usa 'piedra', 'papel' o 'tijera'.", "#ef4444"); return; }
     const iaMove = valid[Math.floor(Math.random() * valid.length)]; printTerminal(`IA eligió: ${iaMove}`, "#38bdf8");
     if (cmd === iaMove) printTerminal("EMPATE.", "#f59e0b"); 
-    else if ( (cmd === 'piedra' && iaMove === 'tijera') || (cmd === 'papel' && iaMove === 'piedra') || (cmd === 'tijera' && iaMove === 'papel') ) { if(window.playTone) window.playTone(800, 'square', 0.2, 0.1); printTerminal("¡GANASTE!", "#10b981"); } 
+    else if ( (cmd === 'piedra' && iaMove === 'tijera') || (cmd === 'papel' && iaMove === 'piedra') || (cmd === 'tijera' && iaMove === 'papel') ) { try { if(window.playTone) window.playTone(800, 'square', 0.2, 0.1); } catch(e){} printTerminal("¡GANASTE!", "#10b981"); } 
     else printTerminal("PERDISTE.", "#ef4444");
 }
 
 function playQuiz(cmd) {
-    if(cmd.includes(currentTrivia.a)) { if(window.playTone) window.playTone(800, 'square', 0.2, 0.1); printTerminal("¡CORRECTO!", "#10b981"); terminalState = 'cmd'; }
+    if(cmd.includes(currentTrivia.a)) { try { if(window.playTone) window.playTone(800, 'square', 0.2, 0.1); } catch(e){} printTerminal("¡CORRECTO!", "#10b981"); terminalState = 'cmd'; }
     else { printTerminal(`Incorrecto. La respuesta era: ${currentTrivia.a}.`, "#ef4444"); terminalState = 'cmd'; }
 }
 
 function playMath(cmd) {
-    if(parseInt(cmd) === mathAnswer) { if(window.playTone) window.playTone(800, 'square', 0.2, 0.1); printTerminal("¡CORRECTO!", "#10b981"); }
+    if(parseInt(cmd) === mathAnswer) { try { if(window.playTone) window.playTone(800, 'square', 0.2, 0.1); } catch(e){} printTerminal("¡CORRECTO!", "#10b981"); }
     else { printTerminal(`Incorrecto. Era ${mathAnswer}.`, "#ef4444"); } terminalState = 'cmd';
 }
 

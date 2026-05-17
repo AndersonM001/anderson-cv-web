@@ -13,9 +13,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     
-    <script src="//unpkg.com/globe.gl"></script>
+    <script src="https://unpkg.com/globe.gl@2.46.1/dist/globe.gl.min.js" crossorigin="anonymous"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <link rel="icon" type="image/png" href="https://github.com/AndersonM001.png?size=32">
     
     <link rel="stylesheet" href="css/style.css?v=20">
 </head>
@@ -73,7 +75,7 @@
                     </div>
                     <div class="hero-visual-col">
                         <div class="avatar-wrapper interactive-element">
-                            <img id="profile-carousel" src="https://ui-avatars.com/api/?name=Anderson+Moncada&background=0f172a&color=38bdf8&size=256&font-size=0.33&bold=true" alt="Anderson Moncada" class="profile-pic">
+                            <img id="profile-carousel" src="https://raw.githubusercontent.com/AndersonM001/anderson-cv-web/main/img/foto1.png" alt="Anderson Moncada" class="profile-pic">
                             <div class="avatar-ring-1"></div>
                             <div class="avatar-ring-2"></div>
                         </div>
@@ -87,9 +89,20 @@
                         <div class="card interactive-element"><h3 class="card-title">💻 Ingeniería de Desarrollo</h3><div id="skills-desarrollo"></div></div>
                         <div class="card interactive-element"><h3 class="card-title">🛡️ Infraestructura & Seguridad</h3><div id="skills-infra"></div></div>
                     </div>
+                    
                     <section class="experience-section">
                         <h2 class="section-title">Experiencia Profesional</h2>
                         <div id="experience-container" class="card interactive-element"></div>
+                    </section>
+
+                    <section class="education-section" style="margin-top: 25px;">
+                        <h2 class="section-title">Formación Académica</h2>
+                        <div id="education-container" class="card interactive-element"></div>
+                    </section>
+
+                    <section class="certifications-section" style="margin-top: 25px;">
+                        <h2 class="section-title">Certificaciones y Diplomados</h2>
+                        <div id="certifications-container" class="card interactive-element"></div>
                     </section>
                 </div>
 
