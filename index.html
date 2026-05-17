@@ -3,109 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anderson Moncada | Neural Engine Portfolio</title>
+    <title>Anderson Moncada | Software & Security Engineer</title>
+    
+    <meta name="description" content="Ingeniero de Sistemas especializado en desarrollo Mobile, Backend y Ciberseguridad SOC.">
+    <meta property="og:title" content="Anderson Moncada | Software & Security Engineer">
+    <meta property="og:description" content="Portafolio interactivo. Experiencia en DevOps, desarrollo Mobile y Ciberseguridad (SOC).">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
     <script src="//unpkg.com/globe.gl"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
-    <link rel="stylesheet" href="css/style.css?v=8">
+    <link rel="stylesheet" href="css/style.css?v=20">
 </head>
 <body>
 
+    <button id="sound-toggle" class="sound-toggle-btn interactive-element" title="Activar/Desactivar Sonido">
+        <svg id="sound-icon-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+        <svg id="sound-icon-off" style="display:none;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+    </button>
+
     <div id="ai-boot-screen">
-        <div id="tech-matrix">
-            <span class="tech-item">DOCKER</span><span class="tech-item">KOTLIN MVVM</span>
-            <span class="tech-item">PYTHON</span><span class="tech-item">FASTAPI</span>
-            <span class="tech-item">ISO 27001</span><span class="tech-item">SOC / SIEM</span>
-            <span class="tech-item">FIREBASE</span><span class="tech-item">VAULTWARDEN</span>
-            <span class="tech-item">GLPI</span><span class="tech-item">NGINX</span>
-        </div>
-
-        <div class="ai-container" id="auth-card">
-            <div class="ai-header">
-                <h2>ANDERSON MONCADA</h2>
-                <p>Mantén pulsado para autorizar y sincronizar el perfil profesional.</p>
+        <div class="ambient-glow"></div>
+        <div id="tech-matrix-bg"></div>
+        
+        <div class="boot-glass-card" id="auth-card">
+            <div class="boot-logo">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
             </div>
+            <h2 class="boot-title">ANDERSON // KERNEL</h2>
+            <p class="boot-subtitle">Mantén pulsado para compilar el entorno.</p>
 
-            <div class="ai-core-wrapper">
-                <svg class="progress-ring" width="180" height="180">
-                    <circle class="progress-ring__bg" stroke="#1e293b" stroke-width="6" fill="transparent" r="84" cx="90" cy="90"/>
-                    <circle class="progress-ring__circle" stroke="#38bdf8" stroke-width="6" fill="transparent" r="84" cx="90" cy="90"/>
-                </svg>
-                
-                <button id="auth-btn" class="auth-button">
-                    <span class="auth-text">MANTENER<br>PULSADO</span>
-                    <div class="ai-orb"></div>
+            <div class="boot-interaction">
+                <button id="auth-btn" class="hold-to-unlock-btn interactive-element">
+                    <span id="auth-percent-text" class="btn-text">HOLD</span>
+                    <svg class="btn-progress-svg" width="120" height="120">
+                        <circle class="btn-progress-track" cx="60" cy="60" r="56"></circle>
+                        <circle id="btn-progress-fill" class="btn-progress-fill" cx="60" cy="60" r="56"></circle>
+                    </svg>
                 </button>
             </div>
-
-            <div class="ai-status">
-                <p id="ai-status-text" class="typing-text">Sistema en espera.</p>
+            <div class="boot-terminal-status">
+                <span class="status-indicator"></span>
+                <p id="ai-status-text" class="boot-terminal-text">Esperando confirmación...</p>
             </div>
         </div>
     </div>
 
     <div id="main-portfolio" class="main-content">
+        <div class="page-grid-overlay"></div> 
+        
         <div class="container">
-            <header>
-                <h1 id="web-nombre">Sincronizando...</h1>
-                <h2 id="web-titulo">...</h2>
-                <p id="web-resumen" class="resumen"></p>
+            <header class="hero-section">
+                <div class="hero-grid">
+                    <div class="hero-text-col">
+                        <div class="status-badge interactive-element"><span class="pulse-dot"></span> Entorno compilado y activo</div>
+                        <h1 class="hero-name" id="web-nombre">Anderson Moncada</h1>
+                        <h2 class="hero-role" id="web-titulo">Ingeniero de Sistemas | Mobile, Backend & DevOps</h2>
+                        <p class="hero-bio" id="web-resumen">Sincronizando bio-perfil profesional...</p>
+                        
+                        <div class="hero-stats">
+                            <div class="stat-item interactive-element"><span class="stat-num">+4</span><span class="stat-label">Años de<br>Experiencia</span></div>
+                            <div class="stat-item interactive-element"><span class="stat-num">ISO</span><span class="stat-label">27001<br>Asegurado</span></div>
+                            <div class="stat-item interactive-element"><span class="stat-num">SOC</span><span class="stat-label">Seguridad<br>Bancaria</span></div>
+                        </div>
+                    </div>
+                    <div class="hero-visual-col">
+                        <div class="avatar-wrapper interactive-element">
+                            <img id="profile-carousel" src="https://ui-avatars.com/api/?name=Anderson+Moncada&background=0f172a&color=38bdf8&size=256&font-size=0.33&bold=true" alt="Anderson Moncada" class="profile-pic">
+                            <div class="avatar-ring-1"></div>
+                            <div class="avatar-ring-2"></div>
+                        </div>
+                    </div>
+                </div>
             </header>
 
-            <div class="grid">
-                <div class="card">
-                    <h3 class="card-title">💻 Ingeniería de Desarrollo</h3>
-                    <div id="skills-desarrollo"></div>
+            <div class="portfolio-layout">
+                <div class="column-main">
+                    <div class="skills-grid">
+                        <div class="card interactive-element"><h3 class="card-title">💻 Ingeniería de Desarrollo</h3><div id="skills-desarrollo"></div></div>
+                        <div class="card interactive-element"><h3 class="card-title">🛡️ Infraestructura & Seguridad</h3><div id="skills-infra"></div></div>
+                    </div>
+                    <section class="experience-section">
+                        <h2 class="section-title">Experiencia Profesional</h2>
+                        <div id="experience-container" class="card interactive-element"></div>
+                    </section>
                 </div>
-                <div class="card">
-                    <h3 class="card-title">🛡️ Infraestructura & Ciberseguridad</h3>
-                    <div id="skills-infra"></div>
-                </div>
-                
-                <div class="card" style="grid-column: 1 / -1;">
-                    <h3 class="card-title">🌐 Telemetría y Análisis SOC (En Vivo)</h3>
-                    <div class="telemetry-wrapper">
-                        <div id="globe-container" class="globe-box"></div>
-                        <div id="telemetry-data" class="telemetry-console">
-                            <span class="blink" style="color: #38bdf8;">Interceptando señales satelitales...</span>
+
+                <div class="column-sidebar">
+                    <div class="card widget-card interactive-element">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <h3 class="card-title">🌐 Telemetría SOC</h3>
+                            <div id="server-metrics" class="server-metrics-badge">
+                                <span class="server-dot"></span> PING: --ms
+                            </div>
+                        </div>
+                        <div class="telemetry-vertical-wrapper">
+                            <div id="globe-container" class="globe-box"></div>
+                            <div id="telemetry-data" class="telemetry-console">
+                                <span class="blink" style="color: #38bdf8;">Interceptando señales...</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="card" style="grid-column: 1 / -1;">
-                    <h3 class="card-title">🤖 Neural Query Engine — Consultas de Perfil via IA</h3>
-                    <div style="background: #020617; border: 1px solid #1e293b; border-radius: 8px; padding: 20px;">
-                        <div id="chat-logs" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.9rem; margin-bottom: 15px; padding-right: 5px; line-height: 1.5;">
-                            <div style="color: #64748b;">[ SYSTEM ] Inicializando agente de reclutamiento automatizado...</div>
-                            <div style="color: #38bdf8; margin-top: 5px;"><span style="color: #10b981;">[ AI Agent ]:</span> Hola. Soy el motor cognitivo de Anderson. Puedes preguntarme sobre sus proyectos en Kotlin, su experiencia en el SOC del Banco de Occidente o sus certificaciones ISO. ¿En qué puedo ayudarte?</div>
-                        </div>
-                        <form id="ai-chat-form" style="display: flex; gap: 10px;">
-                            <input type="text" id="ai-user-input" placeholder="Ej: ¿Qué experiencia tiene en Docker o seguridad bancaria?..." required
-                                   style="flex: 1; background: #0b1329; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; color: #fff; font-family: monospace; outline: none; font-size: 0.9rem;">
-                            <button type="submit" id="ai-send-btn" 
-                                    style="background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 0 25px; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: monospace; transition: all 0.2s;">
-                                ENVIAR
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
             </div>
 
-            <section>
-                <h2 class="section-title">Experiencia Profesional</h2>
-                <div id="experience-container" class="card"></div>
-            </section>
-
             <section class="download-section">
-                <button id="downloadBtn" class="btn-download">
-                    📥 Generar y Descargar PDF Oficial
+                <button id="downloadBtn" class="btn-download interactive-element">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Generar PDF Oficial
                 </button>
+                <div class="hacker-hint">
+                    <span class="blink" style="color: var(--accent-green);">>_</span> System active. Try typing 'sudo' anywhere...
+                </div>
             </section>
         </div>
     </div>
 
-    <script src="js/main.js?v=8"></script>
+    <div id="ai-floating-assistant" class="ai-assistant-wrapper" style="display: none; opacity: 0; transform: translateY(20px); pointer-events: none;">
+        
+        <div id="ai-tooltip" class="ai-tooltip-bubble">¡Hola! ¿Quieres saber más sobre Anderson?</div>
+
+        <button id="ai-trigger-orb" class="ai-orb-trigger interactive-element" title="Consultar perfil via IA">
+            <div class="pulse-ring"></div>
+            <span class="orb-icon">🤖</span>
+        </button>
+
+        <div id="ai-chat-window" class="ai-window-box">
+            <div class="ai-window-header">
+                <div class="header-status"><span class="status-dot"></span><h4>NEURAL QUERY ENGINE</h4></div>
+                <button id="ai-close-btn" class="close-panel-btn interactive-element">&times;</button>
+            </div>
+            <div id="chat-logs" class="chat-logs-box">
+                <div class="msg-system">[ SYSTEM ] Enlace neural persistente establecido.</div>
+                <div class="msg-ai"><span class="bot-tag">[ Jarvis ]:</span> Hola, soy el agente de Anderson. ¿Qué deseas verificar?</div>
+            </div>
+            <div class="ai-quick-actions">
+                <button class="quick-prompt-btn interactive-element" data-prompt="¿Cuál es el stack técnico de Anderson?">🛠️ Stack Fuerte</button>
+                <button class="quick-prompt-btn interactive-element" data-prompt="Resume su experiencia en SOC.">🛡️ Exp. SOC</button>
+            </div>
+            <form id="ai-chat-form" class="ai-form-box">
+                <input type="text" id="ai-user-input" placeholder="Escribe tu consulta..." required autocomplete="off">
+                <button type="submit" id="ai-send-btn" class="interactive-element">➔</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="hacker-terminal" class="hacker-terminal-overlay">
+        <div class="terminal-container">
+            <div class="terminal-header">
+                <span>root@anderson-sys: ~</span>
+                <button id="close-terminal-btn" class="close-panel-btn interactive-element">&times;</button>
+            </div>
+            <div id="terminal-output" class="terminal-output">
+                <div>Anderson OS v1.0.0 (tty1)</div>
+                <div>Ejecuta 'help' para ver comandos, o 'games' para jugar.</div>
+            </div>
+            <div class="terminal-input-line">
+                <span class="prompt-symbol">root@sys:~#</span>
+                <input type="text" id="terminal-input" autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+    </div>
+
+    <script src="js/boot.js?v=20"></script>
+    <script src="js/app.js?v=20"></script>
 </body>
 </html>
