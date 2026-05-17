@@ -17,17 +17,15 @@ const dbFS = firebase.firestore();
 let apiData = null;
 
 // --------------------------------------------------------
-// CAROUSEL DE IMAGEN DE PERFIL Y DATOS
+// CAROUSEL DE IMÁGENES CON INTEGRACIÓN CDN DE CLOUD
 // --------------------------------------------------------
-const profileImages = [
-    "img/foto1.png",
-    "img/foto2.png"
-];
+let profileImages = ["img/foto1.png", "img/foto2.png"];
 let currentImgIndex = 0;
 
 function startProfileCarousel() {
     const imgEl = document.getElementById('profile-carousel');
-    if (!imgEl) return;
+    if (!imgEl || profileImages.length <= 1) return;
+    
     setInterval(() => {
         imgEl.style.opacity = 0; 
         setTimeout(() => {
@@ -39,20 +37,34 @@ function startProfileCarousel() {
 }
 
 window.fetchPortfolioData = async function() { 
-    const res = await fetch(`${BASE_URL}/api/cv-data`); 
-    if (!res.ok) throw new Error(); 
-    apiData = await res.json(); 
-    renderPortfolioData(); 
-    startProfileCarousel(); 
+    try {
+        const res = await fetch(`${BASE_URL}/api/cv-data`); 
+        if (!res.ok) throw new Error("Fallo de comunicación con Render API"); 
+        apiData = await res.json(); 
+        
+        // Inyectar la foto remota de GitHub/Cloud al pool del carousel si está disponible en Firestore
+        if (apiData.info_personal && apiData.info_personal.url_foto) {
+            profileImages[0] = apiData.info_personal.url_foto;
+        }
+        
+        renderPortfolioData(); 
+        startProfileCarousel(); 
+    } catch (e) {
+        console.error(">>> [ERR] Error descargando la matriz del CV: ", e);
+    }
 }
 
 window.renderBars = function() { 
     document.querySelectorAll('.progress-fill').forEach(bar => { bar.style.width = `${bar.getAttribute('data-val')}%`; }); 
 }
 
-function typeWriter(elementId, text, speed = 25) {
-    const el = document.getElementById(elementId); el.innerHTML = ''; let i = 0;
-    function type() { if (i < text.length) { el.innerHTML += text.charAt(i); i++; setTimeout(type, speed); } } type();
+function typeWriter(elementId, text, speed = 20) {
+    const el = document.getElementById(elementId); 
+    if (!el) return;
+    el.innerHTML = ''; 
+    let i = 0;
+    function type() { if (i < text.length) { el.innerHTML += text.charAt(i); i++; setTimeout(type, speed); } } 
+    type();
 }
 
 function renderPortfolioData() {
@@ -60,11 +72,31 @@ function renderPortfolioData() {
     document.getElementById('web-titulo').innerText = apiData.info_personal.perfil_corto;
     typeWriter('web-resumen', apiData.info_personal.resumen);
 
-    apiData.skills.forEach(s => { document.getElementById(`skills-${s.category}`).innerHTML += `<div class="skill-container"><div class="skill-name"><span>${s.name}</span><span>${s.percentage}%</span></div><div class="progress-bar"><div class="progress-fill" data-val="${s.percentage}"></div></div></div>`; });
-    apiData.experiencia.forEach(exp => {
-        let liHtml = exp.detalles.map(d => `<li>${d}</li>`).join(''); let tagsHtml = exp.tags ? exp.tags.map(t => `<span class="tag">${t}</span>`).join('') : '';
-        document.getElementById('experience-container').innerHTML += `<div class="timeline-item"><div class="timeline-header"><span>${exp.cargo}</span><span>${exp.fechas}</span></div><div class="timeline-company">${exp.empresa}</div><ul>${liHtml}</ul><div class="tag-container">${tagsHtml}</div></div>`;
+    // Renderizado reactivo de Skills
+    const skillCategories = ['desarrollo', 'infra'];
+    skillCategories.forEach(cat => {
+        const container = document.getElementById(`skills-${cat}`);
+        if(container) container.innerHTML = '';
     });
+
+    apiData.skills.forEach(s => { 
+        const targetId = `skills-${s.category}`;
+        const container = document.getElementById(targetId);
+        if(container) {
+            container.innerHTML += `<div class="skill-container"><div class="skill-name"><span>${s.name}</span><span>${s.percentage}%</span></div><div class="progress-bar"><div class="progress-fill" data-val="${s.percentage}"></div></div></div>`; 
+        }
+    });
+    
+    // Renderizado de Experiencias
+    const expContainer = document.getElementById('experience-container');
+    if (expContainer) {
+        expContainer.innerHTML = '';
+        apiData.experiencia.forEach(exp => {
+            let liHtml = exp.detalles.map(d => `<li>${d}</li>`).join(''); 
+            let tagsHtml = exp.tags ? exp.tags.map(t => `<span class="tag">${t}</span>`).join('') : '';
+            expContainer.innerHTML += `<div class="timeline-item"><div class="timeline-header"><span>${exp.cargo}</span><span>${exp.fechas}</span></div><div class="timeline-company">${exp.empresa}</div><ul>${liHtml}</ul><div class="tag-container">${tagsHtml}</div></div>`;
+        });
+    }
 
     document.querySelectorAll('.card').forEach(card => {
         card.addEventListener('mousemove', e => {
@@ -76,75 +108,236 @@ function renderPortfolioData() {
 }
 
 // --------------------------------------------------------
-// MÉTRICAS DEVOPS PING
+// METRICAS DEVOPS PING
 // --------------------------------------------------------
 async function pingServer() {
-    const badge = document.getElementById('server-metrics'); const start = performance.now();
-    try { await fetch(`${BASE_URL}/`); const latency = Math.round(performance.now() - start); badge.classList.remove('offline'); badge.innerHTML = `<span class="server-dot"></span> PING: ${latency}ms | 200 OK`; } 
-    catch (e) { badge.classList.add('offline'); badge.innerHTML = `<span class="server-dot"></span> SERVER OFFLINE`; }
+    const badge = document.getElementById('server-metrics'); 
+    if(!badge) return;
+    const start = performance.now();
+    try { 
+        await fetch(`${BASE_URL}/`); 
+        const latency = Math.round(performance.now() - start); 
+        badge.classList.remove('offline'); 
+        badge.innerHTML = `<span class="server-dot"></span> PING: ${latency}ms | 200 OK`; 
+    } catch (e) { 
+        badge.classList.add('offline'); 
+        badge.innerHTML = `<span class="server-dot"></span> SERVER OFFLINE`; 
+    }
 }
 setInterval(pingServer, 10000); setTimeout(pingServer, 2000); 
 
 // --------------------------------------------------------
-// TELEMETRÍA 3D
+// TELEMETRÍA SOC & GLOBO TRIDIMENSIONAL (CORS FIXED)
 // --------------------------------------------------------
 window.iniciarTelemetria3D = async function() {
-    const globeContainer = document.getElementById('globe-container'); const telemetryContainer = document.getElementById('telemetry-data');
+    const globeContainer = document.getElementById('globe-container'); 
+    const telemetryContainer = document.getElementById('telemetry-data');
+    if(!globeContainer || !telemetryContainer) return;
+
     try {
-        const res = await fetch(`${BASE_URL}/api/telemetry`); const myData = await res.json();
+        const res = await fetch(`${BASE_URL}/api/telemetry`); 
+        const myData = await res.json();
+        
         telemetryContainer.innerHTML = `<div style="color: #10b981; margin-bottom: 12px; font-weight: bold;" class="terminal-font">[ ENLACE COMPLETO ]</div><div class="terminal-font"><span style="color:#64748b">IP:</span> ${myData.ip_anonymized || myData.ip}</div><div class="terminal-font"><span style="color:#64748b">Node:</span> ${myData.isp}</div><div class="terminal-font"><span style="color:#64748b">Loc:</span> ${myData.city}, ${myData.country}</div>`;
-        const world = Globe()(globeContainer).globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg').backgroundColor('#0f172a').width(240).height(240).showAtmosphere(true).atmosphereColor('#0ea5e9').pointColor(d => d.isMe ? '#10b981' : '#38bdf8').pointAltitude(0).pointRadius(0.65).pointsMerge(true);
-        world.pointOfView({ lat: 0, lng: 0, altitude: 2.2 }, 0); requestAnimationFrame(() => { if (world.controls() && world.controls().update) world.controls().update(); }); world.controls().autoRotate = true; world.controls().autoRotateSpeed = 1.5;
-        fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson').then(r => r.json()).then(countries => { world.polygonsData(countries.features).polygonCapColor(() => 'rgba(15, 23, 42, 0.6)').polygonSideColor(() => 'rgba(56, 189, 248, 0.15)') .polygonStrokeColor(() => 'rgba(56, 189, 248, 0.4)'); }).catch(e => console.error(e));
-        function updateWebGlPoints(uList) { world.pointsData(uList.map(u => ({ lat: parseFloat(u.lat), lng: parseFloat(u.lon), isMe: u.ip_anonymized === myData.ip_anonymized }))); }
-        if (typeof firebase !== 'undefined' && dbFS) { dbFS.collection("active_users").onSnapshot((s) => { const au = []; s.forEach((d) => { const u = d.data(); if (u.lat && u.lon && ((Date.now() / 1000) - u.timestamp < 600)) au.push(u); }); if (au.length === 0) au.push(myData); updateWebGlPoints(au); }, () => updateWebGlPoints([myData])); } else { updateWebGlPoints([myData]); }
-        setTimeout(() => { world.controls().autoRotate = false; world.pointOfView({ lat: myData.lat, lng: myData.lon, altitude: 0.6 }, 2500); }, 3500);
-    } catch (e) { telemetryContainer.innerHTML = `<span style="color: #ef4444;" class="terminal-font">[ ERROR ] Módulo 3D caído.</span>`; }
+        
+        const world = Globe()(globeContainer)
+            .globeImageUrl('//unpkg.com/three-globe/example/img/earth-dark.jpg')
+            .backgroundColor('#0f172a')
+            .width(240)
+            .height(240)
+            .showAtmosphere(true)
+            .atmosphereColor('#0ea5e9')
+            .pointColor(d => d.isMe ? '#10b981' : '#38bdf8')
+            .pointAltitude(0)
+            .pointRadius(0.65)
+            .pointsMerge(true);
+            
+        world.pointOfView({ lat: 0, lng: 0, altitude: 2.2 }, 0); 
+        requestAnimationFrame(() => { if (world.controls() && world.controls().update) world.controls().update(); }); 
+        world.controls().autoRotate = true; 
+        world.controls().autoRotateSpeed = 1.5;
+        
+        // Parcheo del endpoint para GeoJSON directo de NaturalEarth libre de CORS redirects
+        fetch('https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson')
+            .then(r => r.json())
+            .then(countries => { 
+                world.polygonsData(countries.features)
+                     .polygonCapColor(() => 'rgba(15, 23, 42, 0.6)')
+                     .polygonSideColor(() => 'rgba(56, 189, 248, 0.15)') 
+                     .polygonStrokeColor(() => 'rgba(56, 189, 248, 0.4)'); 
+            }).catch(e => console.error("Error cargando polígonos: ", e));
+            
+        function updateWebGlPoints(uList) { 
+            world.pointsData(uList.map(u => ({ lat: parseFloat(u.lat), lng: parseFloat(u.lon), isMe: u.ip_anonymized === myData.ip_anonymized }))); 
+        }
+        
+        if (typeof firebase !== 'undefined' && dbFS) { 
+            dbFS.collection("active_users").onSnapshot((s) => { 
+                const au = []; 
+                s.forEach((d) => { 
+                    const u = d.data(); 
+                    if (u.lat && u.lon && ((Date.now() / 1000) - u.timestamp < 600)) au.push(u); 
+                }); 
+                if (au.length === 0) au.push(myData); 
+                updateWebGlPoints(au); 
+            }, () => updateWebGlPoints([myData])); 
+        } else { 
+            updateWebGlPoints([myData]); 
+        }
+        
+        setTimeout(() => { 
+            world.controls().autoRotate = false; 
+            world.pointOfView({ lat: myData.lat, lng: myData.lon, altitude: 0.6 }, 2500); 
+        }, 3500);
+    } catch (e) { 
+        telemetryContainer.innerHTML = `<span style="color: #ef4444;" class="terminal-font">[ ERROR ] Módulo SOC caído.</span>`; 
+    }
 }
 
 // --------------------------------------------------------
 // LÓGICA DE ASISTENTE IA Y DESCARGA PDF
 // --------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('downloadBtn').addEventListener('click', async () => {
-        const btn = document.getElementById('downloadBtn'); const textOrig = btn.innerHTML; btn.disabled = true; btn.innerHTML = '⏳ Generando...';
-        try { const r = await fetch(`${BASE_URL}/descargar-cv`); const b = await r.blob(); const a = document.createElement('a'); a.href = window.URL.createObjectURL(b); a.download = 'CV_Anderson_Moncada.pdf'; a.click(); } catch(e) {} finally { btn.disabled = false; btn.innerHTML = textOrig; }
-    });
-    const tOrb = document.getElementById('ai-trigger-orb'), cBtn = document.getElementById('ai-close-btn'), cWin = document.getElementById('ai-chat-window'), fBox = document.getElementById('ai-chat-form'), tTip = document.getElementById('ai-tooltip');
+    const downloadBtn = document.getElementById('downloadBtn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', async () => {
+            const textOrig = downloadBtn.innerHTML; 
+            downloadBtn.disabled = true; 
+            downloadBtn.innerHTML = '⏳ Generando...';
+            try { 
+                const r = await fetch(`${BASE_URL}/descargar-cv`); 
+                if(!r.ok) throw new Error("Error en descarga");
+                const b = await r.blob(); 
+                const a = document.createElement('a'); 
+                a.href = window.URL.createObjectURL(b); 
+                a.download = 'CV_Anderson_Moncada.pdf'; 
+                a.click(); 
+            } catch(e) {
+                console.error("Fallo al bajar PDF: ", e);
+            } finally { 
+                downloadBtn.disabled = false; 
+                downloadBtn.innerHTML = textOrig; 
+            }
+        });
+    }
+
+    const tOrb = document.getElementById('ai-trigger-orb'), 
+          cBtn = document.getElementById('ai-close-btn'), 
+          cWin = document.getElementById('ai-chat-window'), 
+          fBox = document.getElementById('ai-chat-form'), 
+          tTip = document.getElementById('ai-tooltip');
     
     const aiPhrases = ["¡Hola! ¿Quieres saber más sobre Anderson? 👋", "Pregúntame sobre su stack técnico. 🤖", "Conozco toda su experiencia en SOC. 🛡️", "¿Tienes dudas sobre su CV? Yo te ayudo. 💡"];
     let phraseIndex = 0;
+    
     setInterval(() => {
-        if (cWin.style.display === 'flex') return;
-        if(tTip) { tTip.innerText = aiPhrases[phraseIndex % aiPhrases.length]; phraseIndex++; tTip.classList.add('show'); if(window.playTone) window.playTone(900, 'sine', 0.05, 0.01); setTimeout(() => { tTip.classList.remove('show'); }, 4000); }
+        if (!cWin || cWin.style.display === 'flex') return;
+        if(tTip) { 
+            tTip.innerText = aiPhrases[phraseIndex % aiPhrases.length]; 
+            phraseIndex++; 
+            tTip.classList.add('show'); 
+            
+            // Mitigación del bloqueo de audio: Solo suena si el contexto no está suspendido
+            if(window.playTone) {
+                try { window.playTone(900, 'sine', 0.05, 0.01); } catch(audioErr){}
+            }
+            setTimeout(() => { tTip.classList.remove('show'); }, 4000); 
+        }
     }, 12000);
 
-    tOrb.addEventListener('click', () => { if(window.playTone) window.playTone(600,'sine',0.1,0.02); cWin.style.display = 'flex'; tOrb.style.display = 'none'; if(tTip) tTip.classList.remove('show'); document.getElementById('ai-user-input').focus(); });
-    cBtn.addEventListener('click', () => { if(window.playTone) window.playTone(400,'sine',0.1,0.02); cWin.style.display = 'none'; tOrb.style.display = 'flex'; });
-    fBox.addEventListener('submit', procesarPreguntaIA);
-    document.querySelectorAll('.quick-prompt-btn').forEach(btn => { btn.addEventListener('click', (e) => { document.getElementById('ai-user-input').value = e.target.getAttribute('data-prompt'); procesarPreguntaIA(new Event('submit')); }); });
+    if (tOrb && cWin) {
+        tOrb.addEventListener('click', () => { 
+            if(window.playTone) window.playTone(600,'sine',0.1,0.02); 
+            cWin.style.display = 'flex'; 
+            tOrb.style.display = 'none'; 
+            if(tTip) tTip.classList.remove('show'); 
+            const uInput = document.getElementById('ai-user-input');
+            if(uInput) uInput.focus();
+        });
+    }
+    
+    if (cBtn && tOrb && cWin) {
+        cBtn.addEventListener('click', () => { 
+            if(window.playTone) window.playTone(400,'sine',0.1,0.02); 
+            cWin.style.display = 'none'; 
+            tOrb.style.display = 'flex'; 
+        });
+    }
+    
+    if (fBox) fBox.addEventListener('submit', procesarPreguntaIA);
+    
+    document.querySelectorAll('.quick-prompt-btn').forEach(btn => { 
+        btn.addEventListener('click', (e) => { 
+            const uInput = document.getElementById('ai-user-input');
+            if(uInput) {
+                uInput.value = e.target.getAttribute('data-prompt'); 
+                procesarPreguntaIA(new Event('submit')); 
+            }
+        }); 
+    });
 });
 
 async function procesarPreguntaIA(e) {
-    if (e) e.preventDefault(); const inputF = document.getElementById('ai-user-input'), sendB = document.getElementById('ai-send-btn'), logs = document.getElementById('chat-logs');
-    const msg = inputF.value.trim(); if (!msg) return;
-    if(window.playTone) window.playTone(800, 'square', 0.05, 0.02); inputF.disabled = true; sendB.disabled = true; inputF.value = "";
-    logs.innerHTML += `<div class="msg-user">${msg}</div>`; logs.scrollTop = logs.scrollHeight;
-    const lId = "load-"+Date.now(); logs.innerHTML += `<div id="${lId}" class="msg-ai blink terminal-font"><span class="bot-tag">[ Jarvis ]:</span> Procesando NLP...</div>`; logs.scrollTop = logs.scrollHeight;
-    let typingInterval = null; if(window.playTone) typingInterval = setInterval(()=> window.playTone(600, 'triangle', 0.02, 0.01), 100);
+    if (e) e.preventDefault(); 
+    const inputF = document.getElementById('ai-user-input'), 
+          sendB = document.getElementById('ai-send-btn'), 
+          logs = document.getElementById('chat-logs');
+    if(!inputF || !sendB || !logs) return;
+
+    const msg = inputF.value.trim(); 
+    if (!msg) return;
+    
+    if(window.playTone) window.playTone(800, 'square', 0.05, 0.02); 
+    inputF.disabled = true; 
+    sendB.disabled = true; 
+    inputF.value = "";
+    
+    logs.innerHTML += `<div class="msg-user">${msg}</div>`; 
+    logs.scrollTop = logs.scrollHeight;
+    
+    const lId = "load-"+Date.now(); 
+    logs.innerHTML += `<div id="${lId}" class="msg-ai blink terminal-font"><span class="bot-tag">[ Jarvis ]:</span> Procesando NLP...</div>`; 
+    logs.scrollTop = logs.scrollHeight;
+    
+    let typingInterval = null; 
+    if(window.playTone) typingInterval = setInterval(()=> window.playTone(600, 'triangle', 0.02, 0.01), 100);
+    
     try {
-        const r = await fetch(`${BASE_URL}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) }); 
+        const r = await fetch(`${BASE_URL}/api/chat`, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ message: msg }) 
+        }); 
+        
         if (r.status === 429) {
-            if(typingInterval) clearInterval(typingInterval); document.getElementById(lId).remove();
+            if(typingInterval) clearInterval(typingInterval); 
+            const loadEl = document.getElementById(lId);
+            if(loadEl) loadEl.remove();
             logs.innerHTML += `<div class="msg-ai"><span class="bot-tag">[ Jarvis ]:</span> Mis núcleos de procesamiento han alcanzado el límite diario de consultas. 🔋<br><br>Por favor, regresa mañana para continuar la charla.</div>`;
             if(window.playTone) window.playTone(200, 'sawtooth', 0.5, 0.1);
-            inputF.disabled = false; sendB.disabled = false; return;
+            inputF.disabled = false; sendB.disabled = false; 
+            return;
         }
+        
         if (!r.ok) throw new Error();
-        const d = await r.json(); if(typingInterval) clearInterval(typingInterval); document.getElementById(lId).remove();
-        logs.innerHTML += `<div class="msg-ai"><span class="bot-tag">[ Jarvis ]:</span> ${d.response}</div>`; if(window.playTone) window.playTone(1000, 'sine', 0.1, 0.02); setTimeout(() => logs.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-    } catch (err) { if(typingInterval) clearInterval(typingInterval); document.getElementById(lId).remove(); logs.innerHTML += `<div class="msg-system" style="color:#ef4444">Error cognitivo.</div>`; }
-    inputF.disabled = false; sendB.disabled = false; inputF.focus();
+        const d = await r.json(); 
+        
+        if(typingInterval) clearInterval(typingInterval); 
+        const loadEl = document.getElementById(lId);
+        if(loadEl) loadEl.remove();
+        
+        logs.innerHTML += `<div class="msg-ai"><span class="bot-tag">[ Jarvis ]:</span> ${d.response}</div>`; 
+        if(window.playTone) window.playTone(1000, 'sine', 0.1, 0.02); 
+        setTimeout(() => { if(logs.lastElementChild) logs.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
+    } catch (err) { 
+        if(typingInterval) clearInterval(typingInterval); 
+        const loadEl = document.getElementById(lId);
+        if(loadEl) loadEl.remove();
+        logs.innerHTML += `<div class="msg-system" style="color:#ef4444">Error cognitivo de enlace.</div>`; 
+    }
+    inputF.disabled = false; 
+    sendB.disabled = false; 
+    inputF.focus();
 }
 
 // --------------------------------------------------------
@@ -158,7 +351,7 @@ const termOutput = document.getElementById('terminal-output');
 let commandHistory = [];
 let historyIndex = -1;
 
-let terminalState = 'cmd'; // cmd, snake, pong, hack, guess, rps, quiz, math, 8ball
+let terminalState = 'cmd'; 
 let gameTarget = null;
 let gameAttempts = 0;
 let mathAnswer = 0;
@@ -176,7 +369,7 @@ let pongGame = null;
 let snakeGame = null;
 
 window.addEventListener('keydown', (e) => {
-    if (terminal.style.display === 'flex') {
+    if (terminal && terminal.style.display === 'flex') {
         const key = e.key.toLowerCase();
         
         if (terminalState === 'snake') {
@@ -208,11 +401,11 @@ window.addEventListener('keydown', (e) => {
         } else if (e.key === 'ArrowDown' && terminalState === 'cmd') { 
             e.preventDefault(); if (historyIndex < commandHistory.length - 1) { historyIndex++; termInput.value = commandHistory[historyIndex]; } else { historyIndex = commandHistory.length; termInput.value = ''; } 
         }
-        termInput.focus(); 
+        if(termInput) termInput.focus(); 
         return;
     }
 
-    if (document.activeElement.id === 'ai-user-input') return;
+    if (document.activeElement.id === 'ai-user-input' || document.activeElement.id === 'terminal-input') return;
     
     keyBuffer += e.key.toLowerCase(); if (keyBuffer.length > 10) keyBuffer = keyBuffer.slice(-10);
     if (keyBuffer.includes('sudo') || keyBuffer.includes('admin')) {
@@ -220,11 +413,13 @@ window.addEventListener('keydown', (e) => {
         keyBuffer = ''; 
         if(window.playTone) window.playTone(1500, 'sawtooth', 0.5, 0.1);
         
-        termInput.value = ''; // Forzar limpieza inmediata del búfer de entrada gráfica
-        terminal.style.display = 'flex'; 
-        setTimeout(() => { terminal.style.opacity = '1'; termInput.value = ''; termInput.focus(); }, 20);
-        terminal.classList.add('glitch-anim'); 
-        setTimeout(() => terminal.classList.remove('glitch-anim'), 400);
+        if(termInput) termInput.value = ''; 
+        if(terminal) {
+            terminal.style.display = 'flex'; 
+            setTimeout(() => { terminal.style.opacity = '1'; if(termInput) { termInput.value = ''; termInput.focus(); } }, 20);
+            terminal.classList.add('glitch-anim'); 
+            setTimeout(() => terminal.classList.remove('glitch-anim'), 400);
+        }
     }
 });
 
@@ -236,19 +431,27 @@ window.addEventListener('keyup', (e) => {
     }
 });
 
-document.getElementById('close-terminal-btn').addEventListener('click', () => { 
-    if(terminalState === 'snake') quitSnake();
-    if(terminalState === 'pong') quitPong();
-    terminal.style.opacity = '0'; setTimeout(() => { terminal.style.display = 'none'; }, 300); 
-});
+const closeTermBtn = document.getElementById('close-terminal-btn');
+if(closeTermBtn) {
+    closeTermBtn.addEventListener('click', () => { 
+        if(terminalState === 'snake') quitSnake();
+        if(terminalState === 'pong') quitPong();
+        if(terminal) {
+            terminal.style.opacity = '0'; 
+            setTimeout(() => { terminal.style.display = 'none'; }, 300); 
+        }
+    });
+}
 
 function printTerminal(txt, color="#10b981", isHTML = false) {
+    if(!termOutput) return;
     if(isHTML) { termOutput.innerHTML += `<div style="color:${color}; margin-bottom:4px;">${txt}</div>`; } 
     else { const div = document.createElement('div'); div.style.color = color; div.style.marginBottom = '4px'; div.textContent = txt; termOutput.appendChild(div); }
     termOutput.scrollTop = termOutput.scrollHeight;
 }
 
 function procesarComandoTerminal() {
+    if(!termInput) return;
     const cmd = termInput.value.trim().toLowerCase(); termInput.value = ''; if (!cmd) return;
     
     if (terminalState === 'cmd') { commandHistory.push(cmd); historyIndex = commandHistory.length; }
@@ -355,14 +558,18 @@ function procesarComandoTerminal() {
             const matrixInt = setInterval(() => { let chars = ''; for(let i=0; i<40; i++) chars += String.fromCharCode(33 + Math.random()*90); printTerminal(chars, "#10b981"); matrixCount++; if(matrixCount > 15) { clearInterval(matrixInt); printTerminal("Cascada completada.", "#38bdf8"); } }, 100);
             break;
 
-        case 'download_cv': printTerminal("Extrayendo payload desde servidor... Iniciando descarga.", "#10b981"); document.getElementById('downloadBtn').click(); break;
+        case 'download_cv': 
+            printTerminal("Extrayendo payload desde servidor... Iniciando descarga.", "#10b981"); 
+            const dBtn = document.getElementById('downloadBtn');
+            if(dBtn) dBtn.click(); 
+            break;
         case 'skills': printTerminal("[ KOTLIN ] ■■■■■■■■■□ 90%"); printTerminal("[ PYTHON ] ■■■■■■■■□□ 85%"); printTerminal("[ DOCKER ] ■■■■■■■■■□ 88%"); printTerminal("[ IS0 27k] ■■■■■■■■□□ 85%"); break;
-        case 'contact': printTerminal("=== PROTOCOLOS DE COMUNICACIÓN ===", "#38bdf8"); printTerminal("LinkedIn : linkedin.com/in/andersonmoncada"); printTerminal("Email    : anderson@example.com (Visita LinkedIn)"); break;
+        case 'contact': printTerminal("=== PROTOCOLOS DE COMUNICACIÓN ===", "#38bdf8"); printTerminal("LinkedIn : linkedin.com/in/andersonmoncada"); printTerminal("Email    : anderson.mmoncada@gmail.com"); break;
         case 'date': printTerminal(new Date().toString(), "#38bdf8"); break;
         case 'whoami': printTerminal("Anderson Moncada. Ingeniero DevOps & Ciberseguridad. Nivel de acceso: ROOT."); break;
         case 'neofetch': printTerminal(`<pre style="line-height:1.2;">\n   .---.      <span style="color:#fff">OS:</span> AndersonOS v3.1 (DevOps)\n  /     \\     <span style="color:#fff">Kernel:</span> 5.15.0-security\n  \\.@-@./     <span style="color:#fff">Uptime:</span> 24/7\n  /\`\\_/\`\\     <span style="color:#fff">Packages:</span> 1337 (dpkg)\n //  _  \\\\    <span style="color:#fff">Shell:</span> zsh 5.8\n| \\     )|_   <span style="color:#fff">Resolution:</span> 1920x1080\n/\`\\_\`>  <_\/ \\ <span style="color:#fff">CPU:</span> Neural Engine Core\n\\__/'---'\\__/ <span style="color:#fff">Memory:</span> 32GB / 64GB\n            </pre>`, "#38bdf8", true); break;
-        case 'clear': termOutput.innerHTML = '<div>Anderson OS v1.0.0 (tty1)</div><div>Ejecuta \'help\' para ver comandos.</div>'; break;
-        case 'exit': terminal.style.opacity = '0'; setTimeout(() => { terminal.style.display = 'none'; }, 300); break;
+        case 'clear': if(termOutput) termOutput.innerHTML = '<div>Anderson OS v1.0.0 (tty1)</div><div>Ejecuta \'help\' para ver comandos.</div>'; break;
+        case 'exit': if(terminal) { terminal.style.opacity = '0'; setTimeout(() => { terminal.style.display = 'none'; }, 300); } break;
         case 'ping': printTerminal("Haciendo ping a Render API..."); const startT = performance.now(); fetch(`${BASE_URL}/`).then(() => { const lat = Math.round(performance.now() - startT); printTerminal(`64 bytes from API: icmp_seq=1 time=${lat}ms`); pingServer(); }).catch(() => { printTerminal(`Destination Host Unreachable`, "#ef4444"); }); break;
         
         default: printTerminal(`bash: ${cmd}: command not found`, "#ef4444");
@@ -381,7 +588,6 @@ function playGuess(cmd) {
     else { printTerminal(`Más bajo... (Intentos: ${gameAttempts})`, "#f59e0b"); }
 }
 
-// REGLA UX: Limpieza y comparación por estados estructurados
 function playHack(cmd) {
     cmd = cmd.toUpperCase();
     if(cmd === gameTarget) { if(window.playTone) window.playTone(800, 'square', 0.3, 0.1); printTerminal("¡CONTRASEÑA ACEPTADA!", "#10b981"); terminalState = 'cmd'; return; }
@@ -418,22 +624,23 @@ function play8Ball(cmd) {
 // MOTOR DE JUEGOS HTML5 CANVAS (SNAKE Y PONG)
 // ========================================================
 function startPong() {
+    if(!termOutput) return;
     terminalState = 'pong'; termOutput.innerHTML = '';
     printTerminal("=== PONG VS KERNEL AI ===", "#38bdf8"); printTerminal("Controles: W (Arriba) / S (Abajo) o Flechas. Presiona 'Q' para salir.", "#f59e0b");
     const canvas = document.createElement('canvas'); canvas.width = 400; canvas.height = 240; canvas.style.border = "2px solid #38bdf8"; canvas.style.marginTop = "15px"; canvas.style.display = "block"; canvas.style.backgroundColor = "#020617";
-    termOutput.appendChild(canvas); const ctx = canvas.getContext('2d'); termInput.disabled = true; 
+    termOutput.appendChild(canvas); const ctx = canvas.getContext('2d'); if(termInput) termInput.disabled = true; 
     pongGame = { ctx, canvas, player: { y: 100, score: 0 }, ai: { y: 100, score: 0 }, ball: { x: 200, y: 120, dx: 4, dy: 4 }, up: false, down: false, gameOver: false, interval: setInterval(updatePong, 30) };
 }
 
 function updatePong() {
-    const pg = pongGame; if(pg.gameOver) return;
+    const pg = pongGame; if(!pg || pg.gameOver) return;
     if(pg.up && pg.player.y > 0) pg.player.y -= 6; if(pg.down && pg.player.y < 200) pg.player.y += 6;
     const aiSpeed = 3.5; if(pg.ball.y < pg.ai.y + 20) pg.ai.y -= aiSpeed; else if(pg.ball.y > pg.ai.y + 20) pg.ai.y += aiSpeed;
     if(pg.ai.y < 0) pg.ai.y = 0; if(pg.ai.y > 200) pg.ai.y = 200;
     pg.ball.x += pg.ball.dx; pg.ball.y += pg.ball.dy;
-    if(pg.ball.y <= 0 || pg.ball.y >= 235) { pg.ball.dy *= -1; if(window.playTone) window.playTone(400, 'sine', 0.05, 0.02); }
-    if(pg.ball.x <= 15 && pg.ball.x >= 5 && pg.ball.y >= pg.player.y && pg.ball.y <= pg.player.y + 40) { pg.ball.dx *= -1; pg.ball.x = 16; if(window.playTone) window.playTone(800, 'square', 0.05, 0.05); }
-    if(pg.ball.x >= 380 && pg.ball.x <= 390 && pg.ball.y >= pg.ai.y && pg.ball.y <= pg.ai.y + 40) { pg.ball.dx *= -1; pg.ball.x = 379; if(window.playTone) window.playTone(800, 'square', 0.05, 0.05); }
+    if(pg.ball.y <= 0 || pg.ball.y >= 235) { pg.ball.dy *= -1; if(window.playTone) { try { window.playTone(400, 'sine', 0.05, 0.02); } catch(e){} } }
+    if(pg.ball.x <= 15 && pg.ball.x >= 5 && pg.ball.y >= pg.player.y && pg.ball.y <= pg.player.y + 40) { pg.ball.dx *= -1; pg.ball.x = 16; if(window.playTone) { try { window.playTone(800, 'square', 0.05, 0.05); } catch(e){} } }
+    if(pg.ball.x >= 380 && pg.ball.x <= 390 && pg.ball.y >= pg.ai.y && pg.ball.y <= pg.ai.y + 40) { pg.ball.dx *= -1; pg.ball.x = 379; if(window.playTone) { try { window.playTone(800, 'square', 0.05, 0.05); } catch(e){} } }
     if(pg.ball.x < 0) { pg.ai.score++; resetPongBall(); } if(pg.ball.x > 400) { pg.player.score++; resetPongBall(); }
     if(pg.player.score >= 5 || pg.ai.score >= 5) {
         pg.gameOver = true; clearInterval(pg.interval); pg.ctx.fillStyle = 'rgba(0,0,0,0.7)'; pg.ctx.fillRect(0,0, 400, 240);
@@ -445,30 +652,32 @@ function updatePong() {
     if(!pg.gameOver) { pg.ctx.fillStyle = '#020617'; pg.ctx.fillRect(0, 0, 400, 240); pg.ctx.setLineDash([5, 15]); pg.ctx.beginPath(); pg.ctx.moveTo(200, 0); pg.ctx.lineTo(200, 240); pg.ctx.strokeStyle = "rgba(255,255,255,0.2)"; pg.ctx.stroke(); pg.ctx.fillStyle = '#38bdf8'; pg.ctx.fillRect(pg.ball.x, pg.ball.y, 6, 6); pg.ctx.fillStyle = '#10b981'; pg.ctx.fillRect(10, pg.player.y, 5, 40); pg.ctx.fillStyle = '#ef4444'; pg.ctx.fillRect(385, pg.ai.y, 5, 40); pg.ctx.fillStyle = '#fff'; pg.ctx.font = 'bold 24px monospace'; pg.ctx.fillText(pg.player.score, 100, 30); pg.ctx.fillText(pg.ai.score, 280, 30); }
 }
 
-function resetPongBall() { pongGame.ball.x = 200; pongGame.ball.y = 120; pongGame.ball.dx = (Math.random() > 0.5 ? 4 : -4); pongGame.ball.dy = (Math.random() > 0.5 ? 4 : -4); if(window.playTone) window.playTone(200, 'sawtooth', 0.2, 0.05); }
-function quitPong() { if(pongGame) clearInterval(pongGame.interval); termInput.disabled = false; termInput.focus(); terminalState = 'cmd'; printTerminal(`Saliendo del juego...`, "#38bdf8"); pongGame = null; }
+function resetPongBall() { if(pongGame) { pongGame.ball.x = 200; pongGame.ball.y = 120; pongGame.ball.dx = (Math.random() > 0.5 ? 4 : -4); pongGame.ball.dy = (Math.random() > 0.5 ? 4 : -4); if(window.playTone) { try { window.playTone(200, 'sawtooth', 0.2, 0.05); } catch(e){} } } }
+function quitPong() { if(pongGame) clearInterval(pongGame.interval); if(termInput) termInput.disabled = false; if(termInput) termInput.focus(); terminalState = 'cmd'; printTerminal(`Saliendo del juego...`, "#38bdf8"); pongGame = null; }
 
 function startSnake() {
+    if(!termOutput) return;
     terminalState = 'snake'; termOutput.innerHTML = '';
     printTerminal("=== SNAKE PROTOCOL ===", "#38bdf8"); printTerminal("Controles: Flechas o W A S D. Presiona 'Q' para salir.", "#f59e0b");
     const canvas = document.createElement('canvas'); canvas.width = 400; canvas.height = 240; canvas.style.border = "2px solid #10b981"; canvas.style.marginTop = "15px"; canvas.style.display = "block"; canvas.style.backgroundColor = "#020617";
     termOutput.appendChild(canvas); const ctx = canvas.getContext('2d'); const gridSize = 20; let snake = [{x: 10, y: 10}]; let food = {x: 15, y: 5}; let dx = 1, dy = 0; let score = 0; let gameOver = false;
-    termInput.disabled = true; snakeGame = { ctx, canvas, gridSize, snake, food, dx, dy, score, gameOver, interval: setInterval(updateSnake, 120) };
+    if(termInput) termInput.disabled = true; snakeGame = { ctx, canvas, gridSize, snake, food, dx, dy, score, gameOver, interval: setInterval(updateSnake, 120) };
 }
 
 function updateSnake() {
-    const sg = snakeGame; if(sg.gameOver) return;
+    const sg = snakeGame; if(!sg || sg.gameOver) return;
     const head = {x: sg.snake[0].x + sg.dx, y: sg.snake[0].y + sg.dy};
     if(head.x < 0 || head.x >= sg.canvas.width/sg.gridSize || head.y < 0 || head.y >= sg.canvas.height/sg.gridSize) { return triggerGameOver(); }
     for(let part of sg.snake) { if(head.x === part.x && head.y === part.y) return triggerGameOver(); }
     sg.snake.unshift(head);
-    if(head.x === sg.food.x && head.y === sg.food.y) { sg.score += 10; sg.food = { x: Math.floor(Math.random() * (sg.canvas.width/sg.gridSize)), y: Math.floor(Math.random() * (sg.canvas.height/sg.gridSize)) }; if(window.playTone) window.playTone(800, 'sine', 0.1, 0.05); } 
+    if(head.x === sg.food.x && head.y === sg.food.y) { sg.score += 10; sg.food = { x: Math.floor(Math.random() * (sg.canvas.width/sg.gridSize)), y: Math.floor(Math.random() * (sg.canvas.height/sg.gridSize)) }; if(window.playTone) { try { window.playTone(800, 'sine', 0.1, 0.05); } catch(e){} } } 
     else { sg.snake.pop(); }
     sg.ctx.fillStyle = '#020617'; sg.ctx.fillRect(0, 0, sg.canvas.width, sg.canvas.height); sg.ctx.fillStyle = '#ef4444'; sg.ctx.fillRect(sg.food.x * sg.gridSize, sg.food.y * sg.gridSize, sg.gridSize - 1, sg.gridSize - 1); sg.ctx.fillStyle = '#10b981'; for(let part of sg.snake) { sg.ctx.fillRect(part.x * sg.gridSize, part.y * sg.gridSize, sg.gridSize - 1, sg.gridSize - 1); } sg.ctx.fillStyle = '#fff'; sg.ctx.font = '14px "JetBrains Mono", monospace'; sg.ctx.fillText(`Score: ${sg.score}`, 10, 20);
 }
 
 function triggerGameOver() {
-    snakeGame.gameOver = true; clearInterval(snakeGame.interval); if(window.playTone) window.playTone(200, 'sawtooth', 0.5, 0.1);
+    if(!snakeGame) return;
+    snakeGame.gameOver = true; clearInterval(snakeGame.interval); if(window.playTone) { try { window.playTone(200, 'sawtooth', 0.5, 0.1); } catch(e){} }
     snakeGame.ctx.fillStyle = 'rgba(0,0,0,0.7)'; snakeGame.ctx.fillRect(0,0, snakeGame.canvas.width, snakeGame.canvas.height);
     snakeGame.ctx.fillStyle = '#ef4444'; snakeGame.ctx.font = 'bold 20px "JetBrains Mono", monospace'; snakeGame.ctx.fillText(`GAME OVER`, 140, 110);
     snakeGame.ctx.fillStyle = '#fff'; snakeGame.ctx.font = '14px "JetBrains Mono", monospace'; snakeGame.ctx.fillText(`Final Score: ${snakeGame.score}`, 135, 140);
@@ -476,6 +685,6 @@ function triggerGameOver() {
 }
 
 function quitSnake() {
-    if(snakeGame) clearInterval(snakeGame.interval); termInput.disabled = false; termInput.focus(); terminalState = 'cmd';
+    if(snakeGame) clearInterval(snakeGame.interval); if(termInput) termInput.disabled = false; if(termInput) termInput.focus(); terminalState = 'cmd';
     printTerminal(`Saliendo... Puntuación: ${snakeGame ? snakeGame.score : 0}`, "#38bdf8"); snakeGame = null;
 }
